@@ -21,6 +21,11 @@ class AttendanceController extends Controller
 
         $records = AttendanceRecord::with(['student', 'schoolClass'])
             ->whereIn('class_id', $classIds)
+            ->when($request->search, fn($q) =>
+                $q->whereHas('student', fn($sq) =>
+                    $sq->where('name', 'like', "%{$request->search}%")
+                )
+            )
             ->when($request->class_id, fn($q) => $q->where('class_id', $request->class_id))
             ->when($request->date,     fn($q) => $q->whereDate('marked_at', $request->date))
             ->latest('marked_at')

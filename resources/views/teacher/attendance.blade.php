@@ -9,6 +9,8 @@
 <div class="card mb-5">
     <form method="GET">
         <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <input type="text" name="search" value="{{ request('search') }}"
+                class="input sm:flex-1" style="min-width:0;" placeholder="Search student name...">
             <select name="class_id" class="input sm:w-auto">
                 <option value="">All My Classes</option>
                 @foreach($classes as $class)

@@ -4,14 +4,28 @@ namespace App\Http\Controllers\Hod;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
+use App\Models\SchoolClass;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $records = AttendanceRecord::with('student')->latest()->paginate(50);
-        return view('hod.attendance.index', compact('records'));
+        $classes = SchoolClass::orderBy('name')->get();
+
+        $records = AttendanceRecord::with(['student', 'schoolClass'])
+            ->when($request->search, fn($q) =>
+                $q->whereHas('student', fn($sq) =>
+                    $sq->where('name', 'like', "%{$request->search}%")
+                )
+            )
+            ->when($request->class_id, fn($q) => $q->where('class_id', $request->class_id))
+            ->when($request->date, fn($q) => $q->whereDate('marked_at', $request->date))
+            ->latest('marked_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('hod.attendance.index', compact('records', 'classes'));
     }
 
     public function show(AttendanceRecord $record)

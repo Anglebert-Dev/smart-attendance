@@ -5,6 +5,30 @@
 @section('page-subtitle', 'Real-time departmental attendance tracking')
 
 @section('content')
+{{-- Filters --}}
+<div class="card mb-5">
+    <form method="GET">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <input type="text" name="search" value="{{ request('search') }}"
+                class="input sm:flex-1" style="min-width:0;" placeholder="Search student name...">
+            <select name="class_id" class="input sm:w-auto">
+                <option value="">All Classes</option>
+                @foreach($classes as $class)
+                    <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
+                        {{ $class->name }}
+                    </option>
+                @endforeach
+            </select>
+            <input type="date" name="date" value="{{ request('date', today()->format('Y-m-d')) }}"
+                class="input sm:w-auto">
+            <div class="flex gap-2">
+                <button type="submit" class="btn-primary">Filter</button>
+                <a href="{{ route('hod.attendance.index') }}" class="btn-secondary">Reset</a>
+            </div>
+        </div>
+    </form>
+</div>
+
 <div class="card">
     @if($records->count())
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:-4px;">
