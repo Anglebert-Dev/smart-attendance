@@ -29,4 +29,14 @@ class AttendanceController extends Controller
 
         return view('teacher.attendance', compact('records', 'classes'));
     }
+
+    public function show(AttendanceRecord $record)
+    {
+        if ($record->schoolClass->teacher_id !== Auth::id()) {
+            abort(403, 'You do not have access to this record.');
+        }
+
+        $record->load(['student.schoolClass', 'schoolClass.teacher']);
+        return view('teacher.attendance.show', compact('record'));
+    }
 }

@@ -49,8 +49,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/teachers/{teacher}',      [TeacherController::class, 'update'])->name('teachers.update');
     Route::delete('/teachers/{teacher}',   [TeacherController::class, 'destroy'])->name('teachers.destroy');
 
+    // HODs
+    Route::resource('hods', \App\Http\Controllers\Admin\HodController::class);
+
     // Attendance
     Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/{record}', [AdminAttendance::class, 'show'])->name('attendance.show');
 
     // API Keys
     Route::get('/api-keys',                    [ApiKeyController::class, 'index'])->name('api-keys.index');
@@ -64,4 +68,15 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
     Route::get('/classes',   [TeacherClassController::class, 'index'])->name('classes');
     Route::get('/students',  [TeacherStudentController::class, 'index'])->name('students');
     Route::get('/attendance',[TeacherAttendance::class, 'index'])->name('attendance');
+    Route::get('/attendance/{record}',[TeacherAttendance::class, 'show'])->name('attendance.show');
+});
+
+Route::middleware(['auth', 'hod'])->prefix('hod')->name('hod.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Hod\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/teachers',  [\App\Http\Controllers\Hod\TeacherController::class, 'index'])->name('teachers.index');
+    Route::get('/classes',   [\App\Http\Controllers\Hod\ClassController::class, 'index'])->name('classes.index');
+    Route::get('/classes/{class}', [\App\Http\Controllers\Hod\ClassController::class, 'show'])->name('classes.show');
+    Route::get('/students',  [\App\Http\Controllers\Hod\StudentController::class, 'index'])->name('students.index');
+    Route::get('/attendance',[\App\Http\Controllers\Hod\AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/{record}',[\App\Http\Controllers\Hod\AttendanceController::class, 'show'])->name('attendance.show');
 });

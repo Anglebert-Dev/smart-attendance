@@ -16,6 +16,7 @@ class DashboardController extends Controller
             'classes'          => SchoolClass::count(),
             'students'         => Student::count(),
             'teachers'         => User::where('role', 'teacher')->count(),
+            'hods'             => User::where('role', 'hod')->count(),
             'today_attendance' => AttendanceRecord::whereDate('marked_at', today())->count(),
         ];
 

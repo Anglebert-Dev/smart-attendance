@@ -1,5 +1,13 @@
-import face_recognition
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Must be set before importing cv2
+os.environ.setdefault("QT_QPA_PLATFORM", os.getenv("QT_QPA_PLATFORM", "xcb"))
+
 import cv2
+import face_recognition
 import pickle
 import numpy as np
 import requests
@@ -7,7 +15,7 @@ import time
 from datetime import datetime
 
 from config import (
-    API_ATTENDANCE_URL,
+    API_BASE_URL,
     API_KEY,
     CAMERA_SOURCE,
     TOLERANCE,
@@ -15,146 +23,210 @@ from config import (
     MARK_COOLDOWN_SECONDS,
 )
 
-TEST_MODE = False
+# ── State ─────────────────────────────────────────────────────────────
+marked_today   = {}   # { "STU-001": "2025-04-17" }
+notified_today = set()
+last_attempt   = {}   # { "STU-001": <unix timestamp> } — throttle ALL attempts
 
+def already_marked_today(student_id: str) -> bool:
+    today = datetime.now().strftime("%Y-%m-%d")
+    return marked_today.get(student_id) == today
+
+def record_marked(student_id: str):
+    today = datetime.now().strftime("%Y-%m-%d")
+    marked_today[student_id] = today
+
+def cooldown_ok(student_id: str) -> bool:
+    """Returns True if enough time has passed since the last attempt (success or failure)."""
+    now  = time.time()
+    last = last_attempt.get(student_id, 0)
+    if now - last >= MARK_COOLDOWN_SECONDS:
+        last_attempt[student_id] = now
+        return True
+    return False
+
+# ── Load Encodings ────────────────────────────────────────────────────
 print("[INFO] Loading face encodings...")
-
 try:
     with open("encodings/encodings.pkl", "rb") as f:
         data = pickle.load(f)
+    known_encodings  = data["encodings"]
+    known_identities = data["identities"]  # [{"student_id": "STU001", "name": "John Doe"}, ...]
+    print(f"[INFO] Loaded {len(known_identities)} known face(s)\n")
 except FileNotFoundError:
-    print("[ERROR] encodings/encodings.pkl not found.")
-    print("        Run encode_faces.py first.")
+    print("❌ encodings/encodings.pkl not found. Run encode_faces.py first!")
     exit(1)
 
-known_encodings  = data["encodings"]
-known_identities = data.get("identities")
-
-if known_identities is None:
-    print("[WARNING] Old encoding format detected — no student_id available.")
-    print("          Re-run encode_faces.py with the new STU001__Name folder format.")
-    known_identities = [{"student_id": n, "name": n} for n in data.get("names", [])]
-
-print(f"[INFO] Loaded {len(known_identities)} known face(s)\n")
-
-last_marked: dict[str, float] = {}
-
-
-def cooldown_ok(student_id: str) -> bool:
-    """Returns True if the student can be marked again (cooldown expired)."""
-    now  = time.time()
-    last = last_marked.get(student_id, 0)
-    if now - last >= MARK_COOLDOWN_SECONDS:
-        last_marked[student_id] = now
-        return True
-    remaining = int(MARK_COOLDOWN_SECONDS - (now - last))
-    print(f"[SKIP] {student_id} — cooldown active ({remaining}s remaining)")
-    return False
-
-
-def mark_attendance(identity: dict) -> None:
-    """POST attendance to the Laravel API using student_id."""
-    student_id   = identity["student_id"]
-    display_name = identity["name"]
-
-    if not cooldown_ok(student_id):
-        return
-
-    if TEST_MODE:
-        print(f"[TEST] Detected: {display_name} ({student_id}) at {datetime.now().strftime('%H:%M:%S')}")
-        return
-
-    payload = {
-        "student_id": student_id,
-        "timestamp":  datetime.now().isoformat(),
-    }
-    headers = {"X-API-Key": API_KEY}
-
+# ── API Call ──────────────────────────────────────────────────────────
+def mark_attendance(student_id: str, full_name: str):
+    """Send attendance record to Laravel API."""
     try:
         response = requests.post(
-            API_ATTENDANCE_URL,
-            json=payload,
-            headers=headers,
-            timeout=5,
+            f"{API_BASE_URL}/attendance",
+            json={
+                "student_id": student_id,
+                "timestamp":  datetime.now().isoformat(),
+            },
+            headers={"X-API-Key": API_KEY},
+            timeout=5
         )
 
         if response.status_code == 200:
             data = response.json()
-            print(
-                f"[✓] Marked: {display_name} ({student_id}) "
-                f"| Class: {data.get('class', 'N/A')} "
-                f"| {datetime.now().strftime('%H:%M:%S')}"
-            )
-        elif response.status_code == 409:
-            print(f"[=] Already marked today: {display_name}")
+
+            if data.get("already_marked"):
+                # Laravel says already marked (e.g. script was restarted)
+                record_marked(student_id)
+                if student_id not in notified_today:
+                    print(f"[INFO] {full_name} ({student_id}) already marked earlier today.")
+                    notified_today.add(student_id)
+                return
+
+            class_name = data.get("class", "N/A")
+            time_str   = datetime.now().strftime("%H:%M:%S")
+            print(f"[✓] Marked: {full_name} ({student_id}) | Class: {class_name} | {time_str}")
+            record_marked(student_id)
+
+        elif response.status_code == 404:
+            print(f"[WARN] Student {student_id} not found in Laravel database.")
+
         else:
-            print(f"[ERROR] API returned {response.status_code} for {student_id}: {response.text}")
-            last_marked.pop(student_id, None)
+            print(f"[ERROR] API returned {response.status_code} for {student_id}")
 
     except requests.exceptions.ConnectionError:
-        print(f"[OFFLINE] Could not reach API — {display_name} queued locally")
+        print(f"[WARN] Cannot reach API — is Laravel running? Skipping {student_id}")
+    except requests.exceptions.Timeout:
+        print(f"[WARN] API timeout for {student_id}")
 
-
+# ── Camera ────────────────────────────────────────────────────────────
 print(f"[INFO] Opening camera: {CAMERA_SOURCE}")
 cap = cv2.VideoCapture(CAMERA_SOURCE)
 
 if not cap.isOpened():
-    print("[ERROR] Could not open camera.")
+    print(f"❌ Could not open camera {CAMERA_SOURCE}.")
+    print("   Try changing CAMERA_SOURCE in .env to 1 or 2")
+    print("   Or check: ls /dev/video*")
     exit(1)
 
-frame_count = 0
+# Improve camera resolution
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 print("[INFO] Recognition running. Press Q to quit.\n")
+
+frame_count = 0
+today_str   = datetime.now().strftime("%Y-%m-%d")
 
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("[ERROR] Failed to read frame from camera.")
+        print("[ERROR] Failed to grab frame from camera.")
         break
+
+    # Reset daily tracking at midnight
+    current_day = datetime.now().strftime("%Y-%m-%d")
+    if current_day != today_str:
+        print(f"\n[INFO] New day detected ({current_day}). Resetting attendance tracking.\n")
+        marked_today.clear()
+        notified_today.clear()
+        today_str = current_day
 
     frame_count += 1
 
+    # ── Process every Nth frame to save CPU ──
     if frame_count % PROCESS_EVERY_N_FRAMES != 0:
         cv2.imshow("SmartAttend — Face Recognition", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         continue
 
+    # ── Shrink frame for faster detection ──
     small = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
     rgb   = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
-    face_locations = face_recognition.face_locations(rgb)
-    face_encodings = face_recognition.face_encodings(rgb, face_locations)
+    # ── Detect faces ──
+    locations  = face_recognition.face_locations(rgb)
+    encodings  = face_recognition.face_encodings(rgb, locations)
 
-    for face_enc, face_loc in zip(face_encodings, face_locations):
-        matches        = face_recognition.compare_faces(known_encodings, face_enc, tolerance=TOLERANCE)
-        face_distances = face_recognition.face_distance(known_encodings, face_enc)
+    for encoding, location in zip(encodings, locations):
+        distances   = face_recognition.face_distance(known_encodings, encoding)
+        matches     = face_recognition.compare_faces(known_encodings, encoding, tolerance=TOLERANCE)
 
-        label = "Unknown"
-        color = (0, 0, 255)  # red
+        name        = "Unknown"
+        student_id  = None
+        full_name   = "Unknown"
+        color       = (0, 0, 255)  # red for unknown
 
-        if len(face_distances) > 0:
-            best = int(np.argmin(face_distances))
-            if matches[best]:
-                identity = known_identities[best]
-                label    = f"{identity['name']} ({identity['student_id']})"
-                color    = (0, 200, 80)  # green
-                mark_attendance(identity)
+        if len(distances) > 0:
+            best_idx = int(np.argmin(distances))
+            if matches[best_idx]:
+                identity   = known_identities[best_idx]
+                student_id = identity["student_id"]
+                full_name  = identity["name"]
+                name       = full_name
+                color      = (0, 200, 0)  # green for recognized
 
-        top, right, bottom, left = [v * 4 for v in face_loc]
+                # ── Mark attendance logic ──
+                if already_marked_today(student_id):
+                    if student_id not in notified_today:
+                        print(f"[INFO] {full_name} already marked present today.")
+                        notified_today.add(student_id)
+                elif cooldown_ok(student_id):
+                    mark_attendance(student_id, full_name)
+            else:
+                print(f"[UNKNOWN] Unrecognized face detected at {datetime.now().strftime('%H:%M:%S')}")
 
+        # ── Draw bounding box and name on frame ──
+        top, right, bottom, left = location
+        top    *= 4; right  *= 4
+        bottom *= 4; left   *= 4
+
+        # Box
         cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-        cv2.putText(frame, label, (left + 6, bottom - 8),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.65, (255, 255, 255), 1)
 
-    ts = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
-    cv2.putText(frame, ts, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (220, 220, 220), 2)
+        # Name label background
+        cv2.rectangle(frame, (left, bottom - 40), (right, bottom), color, cv2.FILLED)
+
+        # Name text
+        cv2.putText(
+            frame, name,
+            (left + 6, bottom - 10),
+            cv2.FONT_HERSHEY_DUPLEX,
+            0.65, (255, 255, 255), 1
+        )
+
+        # Show confidence %
+        if student_id:
+            confidence = round((1 - float(np.min(distances))) * 100, 1)
+            cv2.putText(
+                frame, f"{confidence}%",
+                (left + 6, top - 8),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5, color, 1
+            )
+
+    # ── Overlay: date/time and student count ──
+    cv2.putText(
+        frame,
+        datetime.now().strftime("%Y-%m-%d  %H:%M:%S"),
+        (10, 28),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65, (255, 255, 255), 2
+    )
+    cv2.putText(
+        frame,
+        f"Marked today: {len(marked_today)}",
+        (10, 56),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.55, (0, 255, 180), 2
+    )
 
     cv2.imshow("SmartAttend — Face Recognition", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        print("\n[INFO] Quit signal received.")
         break
 
 cap.release()
 cv2.destroyAllWindows()
-print("\n[INFO] System stopped.")
+print("[INFO] Camera closed. System stopped.")

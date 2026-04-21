@@ -21,6 +21,7 @@ except ValueError:
 TOLERANCE              = float(os.getenv("TOLERANCE", "0.5"))
 PROCESS_EVERY_N_FRAMES = int(os.getenv("PROCESS_EVERY_N_FRAMES", "3"))
 MARK_COOLDOWN_SECONDS  = int(os.getenv("MARK_COOLDOWN_SECONDS", "60"))
+QT_QPA_PLATFORM        = os.getenv("QT_QPA_PLATFORM", "xcb")
 
 if not API_KEY:
     raise RuntimeError(

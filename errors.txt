@@ -1,0 +1,81 @@
+(venv) ➜  python-ai git:(main) ✗ python recognize.py
+[INFO] Loading face encodings...
+[INFO] Loaded 5 known face(s)
+
+[INFO] Opening camera: 0
+[INFO] Recognition running. Press Q to quit.
+
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+[UNKNOWN] Unrecognized face detected at 12:20:49
+[✓] Marked: Ishimwe Shumbusho Anglebert (STU-001) | Class: Y3 A | 12:20:50
+[INFO] Ishimwe Shumbusho Anglebert already marked present today.
+[UNKNOWN] Unrecognized face detected at 12:20:51
+[UNKNOWN] Unrecognized face detected at 12:21:09
+[UNKNOWN] Unrecognized face detected at 12:21:10
+[UNKNOWN] Unrecognized face detected at 12:21:10
+[UNKNOWN] Unrecognized face detected at 12:21:10
+[UNKNOWN] Unrecognized face detected at 12:21:10
+[UNKNOWN] Unrecognized face detected at 12:21:11
+[UNKNOWN] Unrecognized face detected at 12:21:11
+[UNKNOWN] Unrecognized face detected at 12:21:11
+[UNKNOWN] Unrecognized face detected at 12:21:12
+[UNKNOWN] Unrecognized face detected at 12:21:12
+[UNKNOWN] Unrecognized face detected at 12:21:12
+[UNKNOWN] Unrecognized face detected at 12:21:12
+[UNKNOWN] Unrecognized face detected at 12:21:12
+[UNKNOWN] Unrecognized face detected at 12:21:13
+[UNKNOWN] Unrecognized face detected at 12:21:13
+[UNKNOWN] Unrecognized face detected at 12:21:13
+[UNKNOWN] Unrecognized face detected at 12:21:14
+[UNKNOWN] Unrecognized face detected at 12:21:14
+[UNKNOWN] Unrecognized face detected at 12:21:14
+[UNKNOWN] Unrecognized face detected at 12:21:15
+^CTraceback (most recent call last):
+  File "/home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/recognize.py", line 148, in <module>
+    locations  = face_recognition.face_locations(rgb)
+  File "/home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/face_recognition/api.py", line 121, in face_locations
+    return [_trim_css_to_bounds(_rect_to_css(face), img.shape) for face in _raw_face_locations(img, number_of_times_to_upsample, model)]
+                                                                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/face_recognition/api.py", line 105, in _raw_face_locations
+    return face_detector(img, number_of_times_to_upsample)
+KeyboardInterrupt
+
+(venv) ➜  python-ai git:(main) ✗ python recognize.py
+[INFO] Loading face encodings...
+[INFO] Loaded 5 known face(s)
+
+[INFO] Opening camera: 0
+[INFO] Recognition running. Press Q to quit.
+
+Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+[INFO] Ishimwe Shumbusho Anglebert (STU-001) already marked earlier today.
+^CTraceback (most recent call last):
+  File "/home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/recognize.py", line 149, in <module>
+    encodings  = face_recognition.face_encodings(rgb, locations)
+  File "/home/makaveli/Documents/Personal-projects/smart-attendance/python-ai/venv/lib/python3.13/site-packages/face_recognition/api.py", line 214, in face_encodings
+    return [np.array(face_encoder.compute_face_descriptor(face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+(venv) ➜  python-ai git:(main) ✗ 
+

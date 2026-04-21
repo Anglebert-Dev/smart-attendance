@@ -10,20 +10,21 @@ use Illuminate\Http\Request;
 class AttendanceApiController extends Controller
 {
     /**
-     * Mark attendance for a student.
-     * Called by Python recognize.py — auth handled by ApiKeyMiddleware.
+     * Called by Python face recognition module to mark attendance.
      * POST /api/v1/attendance
      */
     public function markAttendance(Request $request)
     {
+        // ── Validate ──────────────────────────────────────────────
         $data = $request->validate([
-            'student_id' => 'required|string',          // unique student ID, not name
+            'student_id' => 'required|string',
             'timestamp'  => 'required|string',
-            'class_id'   => 'nullable|integer|exists:school_classes,id',
         ]);
 
-        // Match by the unique student_id field — not name
-        $student = Student::where('student_id', $data['student_id'])->first();
+        // ── Find Student (always eager load schoolClass) ──────────
+        $student = Student::with('schoolClass')
+            ->where('student_id', $data['student_id'])
+            ->first();
 
         if (!$student) {
             return response()->json([
@@ -32,22 +33,28 @@ class AttendanceApiController extends Controller
             ], 404);
         }
 
-        $markedAt = now()->parse($data['timestamp']);
-        $classId  = $data['class_id'] ?? $student->class_id;
+        $markedAt  = now()->parse($data['timestamp']);
+        $classId   = $student->class_id;
+        $className = $student->schoolClass->name ?? 'N/A';
 
-        // Duplicate guard — one entry per student per class per day
-        $exists = AttendanceRecord::where('student_id', $student->id)
+        // ── Already marked TODAY? ─────────────────────────────────
+        $alreadyMarked = AttendanceRecord::where('student_id', $student->id)
             ->where('class_id', $classId)
             ->whereDate('marked_at', $markedAt->toDateString())
             ->exists();
 
-        if ($exists) {
+        if ($alreadyMarked) {
             return response()->json([
-                'message' => 'Already marked today',
-                'student' => $student->name,
+                'already_marked' => true,
+                'message'        => "{$student->name} already marked present today.",
+                'student'        => $student->name,
+                'student_id'     => $student->student_id,
+                'class'          => $className,
+                'date'           => $markedAt->toDateString(),
             ], 200);
         }
 
+        // ── Create Record ─────────────────────────────────────────
         AttendanceRecord::create([
             'student_id' => $student->id,
             'class_id'   => $classId,
@@ -57,39 +64,42 @@ class AttendanceApiController extends Controller
         ]);
 
         return response()->json([
-            'success' => true,
-            'message' => "Attendance marked for {$student->name}",
-            'student' => $student->name,
-            'class'   => $student->schoolClass->name ?? 'N/A',
-            'time'    => $markedAt->format('H:i:s'),
+            'already_marked' => false,
+            'success'        => true,
+            'message'        => "Attendance marked for {$student->name}",
+            'student'        => $student->name,
+            'student_id'     => $student->student_id,
+            'class'          => $className,
+            'time'           => $markedAt->format('H:i:s'),
+            'date'           => $markedAt->toDateString(),
         ], 200);
     }
 
     /**
-     * Return all students with photos for face encoding.
+     * Return all students with photos for encoding.
      * GET /api/v1/students/for-encoding
      */
-    public function studentsForEncoding()
+    public function studentsForEncoding(Request $request)
     {
-        $students = Student::with(['schoolClass', 'photos'])
-            ->whereHas('photos')
+        $students = Student::with('schoolClass')
+            ->whereNotNull('photo')
             ->get()
             ->map(fn($s) => [
                 'id'         => $s->id,
                 'name'       => $s->name,
                 'student_id' => $s->student_id,
                 'class'      => $s->schoolClass->name ?? 'N/A',
-                'photo_urls' => $s->photos->map(fn($p) => $p->url())->values(),
+                'photo_url'  => asset('storage/' . $s->photo),
             ]);
 
         return response()->json(['students' => $students]);
     }
 
     /**
-     * Mark a student as face-encoded.
+     * Mark student as face-encoded.
      * POST /api/v1/students/{id}/encoded
      */
-    public function markEncoded($id)
+    public function markEncoded(Request $request, $id)
     {
         $student = Student::findOrFail($id);
         $student->update(['face_encoded' => true]);

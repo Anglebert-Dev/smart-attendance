@@ -28,4 +28,9 @@ class User extends Authenticatable
     {
         return $this->role === 'teacher';
     }
+
+    public function isHod(): bool
+    {
+        return $this->role === 'hod';
+    }
 }

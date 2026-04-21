@@ -27,4 +27,10 @@ class AttendanceController extends Controller
 
         return view('admin.attendance.index', compact('records', 'classes'));
     }
+
+    public function show(AttendanceRecord $record)
+    {
+        $record->load(['student.schoolClass', 'schoolClass.teacher']);
+        return view('admin.attendance.show', compact('record'));
+    }
 }

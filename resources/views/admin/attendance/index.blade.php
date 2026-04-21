@@ -41,6 +41,7 @@
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Time</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Date</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Method</th>
+                    <th class="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -73,6 +74,9 @@
                         <span class="badge-slate">
                             {{ $record->method === 'face_recognition' ? '🤖 AI' : '✋ Manual' }}
                         </span>
+                    </td>
+                    <td class="py-3.5 text-right">
+                        <a href="{{ route('admin.attendance.show', $record) }}" class="btn-secondary py-1 text-xs">View</a>
                     </td>
                 </tr>
                 @endforeach

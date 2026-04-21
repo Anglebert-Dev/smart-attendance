@@ -22,9 +22,13 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return Auth::user()->isAdmin()
-                ? redirect()->route('admin.dashboard')
-                : redirect()->route('teacher.dashboard');
+            if (Auth::user()->isAdmin()) {
+                return redirect()->route('admin.dashboard');
+            } elseif (Auth::user()->isHod()) {
+                return redirect()->route('hod.dashboard');
+            }
+
+            return redirect()->route('teacher.dashboard');
         }
 
         return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');

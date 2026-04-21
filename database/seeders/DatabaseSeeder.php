@@ -30,8 +30,19 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Create a demo HOD
+        User::firstOrCreate(
+            ['email' => 'hod@school.edu'],
+            [
+                'name'     => 'Demo HOD',
+                'password' => Hash::make('hod123'),
+                'role'     => 'hod',
+            ]
+        );
+
         $this->command->info('✅ Default accounts created:');
         $this->command->info('   Admin   → admin@school.edu / admin123');
         $this->command->info('   Teacher → teacher@school.edu / teacher123');
+        $this->command->info('   HOD     → hod@school.edu / hod123');
     }
 }
