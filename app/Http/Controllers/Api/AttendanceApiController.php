@@ -81,16 +81,30 @@ class AttendanceApiController extends Controller
      */
     public function studentsForEncoding(Request $request)
     {
-        $students = Student::with('schoolClass')
-            ->whereNotNull('photo')
+        $students = Student::with(['schoolClass', 'photos'])
             ->get()
-            ->map(fn($s) => [
-                'id'         => $s->id,
-                'name'       => $s->name,
-                'student_id' => $s->student_id,
-                'class'      => $s->schoolClass->name ?? 'N/A',
-                'photo_url'  => asset('storage/' . $s->photo),
-            ]);
+            ->map(function ($s) {
+                // Collect all photo URLs: legacy single photo + all StudentPhoto records
+                $urls = [];
+
+                if ($s->photo) {
+                    $urls[] = asset('storage/' . $s->photo);
+                }
+
+                foreach ($s->photos as $photo) {
+                    $urls[] = $photo->url();
+                }
+
+                return [
+                    'id'         => $s->id,
+                    'name'       => $s->name,
+                    'student_id' => $s->student_id,
+                    'class'      => $s->schoolClass->name ?? 'N/A',
+                    'photo_urls' => array_values(array_unique($urls)), // ✅ plural list
+                ];
+            })
+            ->filter(fn($s) => count($s['photo_urls']) > 0)  // only students with photos
+            ->values();
 
         return response()->json(['students' => $students]);
     }
