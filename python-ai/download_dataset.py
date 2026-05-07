@@ -25,7 +25,7 @@ except requests.exceptions.ConnectionError:
     print(f"        Is the server running at {API_STUDENTS_URL}?")
     exit(1)
 except requests.exceptions.HTTPError as e:
-    print(f"[ERROR] API returned {resp.status_code}: {resp.text}")
+    print(f"[ERROR] API returned {e.response.status_code}: {e.response.text}")
     exit(1)
 
 students = resp.json().get("students", [])

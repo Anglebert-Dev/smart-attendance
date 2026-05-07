@@ -15,13 +15,10 @@ class AttendanceApiController extends Controller
      */
     public function markAttendance(Request $request)
     {
-        // ── Validate ──────────────────────────────────────────────
         $data = $request->validate([
             'student_id' => 'required|string',
-            'timestamp'  => 'required|string',
         ]);
 
-        // ── Find Student (always eager load schoolClass) ──────────
         $student = Student::with('schoolClass')
             ->where('student_id', $data['student_id'])
             ->first();
@@ -33,11 +30,10 @@ class AttendanceApiController extends Controller
             ], 404);
         }
 
-        $markedAt  = now()->parse($data['timestamp']);
+        $markedAt  = now();
         $classId   = $student->class_id;
         $className = $student->schoolClass->name ?? 'N/A';
 
-        // ── Already marked TODAY? ─────────────────────────────────
         $alreadyMarked = AttendanceRecord::where('student_id', $student->id)
             ->where('class_id', $classId)
             ->whereDate('marked_at', $markedAt->toDateString())
@@ -54,7 +50,6 @@ class AttendanceApiController extends Controller
             ], 200);
         }
 
-        // ── Create Record ─────────────────────────────────────────
         AttendanceRecord::create([
             'student_id' => $student->id,
             'class_id'   => $classId,
@@ -84,7 +79,6 @@ class AttendanceApiController extends Controller
         $students = Student::with(['schoolClass', 'photos'])
             ->get()
             ->map(function ($s) {
-                // Collect all photo URLs: legacy single photo + all StudentPhoto records
                 $urls = [];
 
                 if ($s->photo) {

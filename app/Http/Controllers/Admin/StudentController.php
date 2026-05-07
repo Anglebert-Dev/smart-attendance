@@ -42,7 +42,7 @@ class StudentController extends Controller
             'email'      => 'nullable|email|unique:students,email',
             'class_id'   => 'required|exists:school_classes,id',
             'photos'     => 'nullable|array|max:10',
-            'photos.*'   => 'image|max:5120',
+            'photos.*'   => 'image|mimes:jpeg,jpg,png,webp|max:5120|dimensions:min_width=100,min_height=100',
         ]);
 
         unset($data['photos']);
@@ -78,7 +78,7 @@ class StudentController extends Controller
             'email'      => "nullable|email|unique:students,email,{$student->id}",
             'class_id'   => 'required|exists:school_classes,id',
             'photos'     => 'nullable|array|max:10',
-            'photos.*'   => 'image|max:5120',
+            'photos.*'   => 'image|mimes:jpeg,jpg,png,webp|max:5120|dimensions:min_width=100,min_height=100',
         ]);
 
         unset($data['photos']);

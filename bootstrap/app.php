@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         $middleware->alias([
             'admin'   => \App\Http\Middleware\AdminMiddleware::class,
             'teacher' => \App\Http\Middleware\TeacherMiddleware::class,
