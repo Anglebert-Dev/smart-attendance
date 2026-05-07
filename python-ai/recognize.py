@@ -24,6 +24,7 @@ from config import (
     PROCESS_EVERY_N_FRAMES,
     MARK_COOLDOWN_SECONDS,
     ENCODE_POLL_INTERVAL,
+    CONFIRM_FRAMES,
 )
 from encoder import encode_student, mark_encoded
 
@@ -62,17 +63,10 @@ _ch = logging.StreamHandler()
 _ch.setFormatter(_fmt)
 log.addHandler(_ch)
 
-marked_today   = {}   # { "STU-001": "2025-04-17" }
-notified_today = set()
-last_attempt   = {}   # { "STU-001": <unix timestamp> } — throttle ALL attempts
-
-def already_marked_today(student_id: str) -> bool:
-    today = datetime.now().strftime("%Y-%m-%d")
-    return marked_today.get(student_id) == today
-
-def record_marked(student_id: str):
-    today = datetime.now().strftime("%Y-%m-%d")
-    marked_today[student_id] = today
+notified_today    = set()
+last_attempt      = {}   # { "STU-001": <unix timestamp> } — throttle ALL attempts
+marked_count      = 0    # successful new marks this day (display only)
+_streak           = {}   # { "STU-001": consecutive_frame_count }
 
 def cooldown_ok(student_id: str) -> bool:
     """Returns True if enough time has passed since the last attempt (success or failure)."""
@@ -171,6 +165,7 @@ log.info("Encode poller started (interval: %ds).", ENCODE_POLL_INTERVAL)
 
 def mark_attendance(student_id: str, full_name: str):
     """Send attendance record to Laravel API (runs in background thread)."""
+    global marked_count
     try:
         response = requests.post(
             f"{API_BASE_URL}/attendance",
@@ -183,7 +178,6 @@ def mark_attendance(student_id: str, full_name: str):
             data = response.json()
 
             if data.get("already_marked"):
-                record_marked(student_id)
                 if student_id not in notified_today:
                     log.info("%s (%s) already marked earlier today.", full_name, student_id)
                     notified_today.add(student_id)
@@ -191,7 +185,8 @@ def mark_attendance(student_id: str, full_name: str):
 
             class_name = data.get("class", "N/A")
             log.info("MARKED  %s (%s) | Class: %s", full_name, student_id, class_name)
-            record_marked(student_id)
+            marked_count += 1
+            notified_today.discard(student_id)  # re-marked after deletion — reset notification
 
         elif response.status_code == 404:
             log.warning("Student %s not found in Laravel database.", student_id)
@@ -259,8 +254,10 @@ while True:
         current_day = datetime.now().strftime("%Y-%m-%d")
         if current_day != today_str:
             log.info("New day detected (%s). Resetting attendance tracking.", current_day)
-            marked_today.clear()
             notified_today.clear()
+            last_attempt.clear()
+            _streak.clear()
+            marked_count = 0
             today_str = current_day
 
         frame_count += 1
@@ -283,6 +280,8 @@ while True:
             enc_snap = list(known_encodings)
             id_snap  = list(known_identities)
 
+        seen_this_frame = set()
+
         for encoding, location in zip(encodings, locations):
             distances = face_recognition.face_distance(enc_snap, encoding)
             matches   = face_recognition.compare_faces(enc_snap, encoding, tolerance=TOLERANCE)
@@ -301,16 +300,16 @@ while True:
                     name       = full_name
                     color      = (0, 200, 0)  # green for recognized
 
-                    if already_marked_today(student_id):
-                        if student_id not in notified_today:
-                            log.info("%s already marked present today.", full_name)
-                            notified_today.add(student_id)
-                    elif cooldown_ok(student_id):
+                    seen_this_frame.add(student_id)
+                    _streak[student_id] = _streak.get(student_id, 0) + 1
+
+                    if _streak[student_id] >= CONFIRM_FRAMES and cooldown_ok(student_id):
                         threading.Thread(
                             target=mark_attendance,
                             args=(student_id, full_name),
                             daemon=True,
                         ).start()
+                        _streak[student_id] = 0
                 else:
                     log.info("Unrecognized face detected.")
 
@@ -336,6 +335,11 @@ while True:
                     0.5, color, 1,
                 )
 
+        # Drop streak for any student whose face left the frame
+        for sid in list(_streak.keys()):
+            if sid not in seen_this_frame:
+                del _streak[sid]
+
         cv2.putText(
             frame,
             datetime.now().strftime("%Y-%m-%d  %H:%M:%S"),
@@ -345,7 +349,7 @@ while True:
         )
         cv2.putText(
             frame,
-            f"Marked today: {len(marked_today)}",
+            f"Marked today: {marked_count}",
             (10, 56),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.55, (0, 255, 180), 2,
