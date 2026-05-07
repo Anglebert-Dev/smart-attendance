@@ -67,7 +67,9 @@
                     </td>
                     <td class="py-3.5 text-sm text-slate-600 whitespace-nowrap">{{ $record->marked_at->format('H:i') }}</td>
                     <td class="py-3.5">
-                        <span class="badge-slate">{{ $record->method === 'face_recognition' ? '🤖 AI' : '✋ Manual' }}</span>
+                        <span class="badge-{{ $record->methodColor() }}">
+                            {!! $record->methodIcon() !!}&nbsp;{{ $record->methodLabel() }}
+                        </span>
                     </td>
                     <td class="py-3.5 text-right">
                         <a href="{{ route('teacher.attendance.show', $record) }}" class="btn-secondary py-1 text-xs">View</a>

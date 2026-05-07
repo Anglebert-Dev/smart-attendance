@@ -23,7 +23,9 @@ from config import (
     TOLERANCE,
     PROCESS_EVERY_N_FRAMES,
     MARK_COOLDOWN_SECONDS,
+    ENCODE_POLL_INTERVAL,
 )
+from encoder import encode_student, mark_encoded
 
 os.makedirs("logs", exist_ok=True)
 
@@ -35,12 +37,24 @@ _fmt = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+# Active log:   logs/recognize.2026-05-07.log
+# Rotated logs: logs/recognize.2026-05-06.log  (previous days)
+_today = datetime.now().strftime("%Y-%m-%d")
 _fh = TimedRotatingFileHandler(
-    "logs/recognize.log",
+    f"logs/recognize.{_today}.log",
     when="midnight",
     backupCount=30,
     encoding="utf-8",
 )
+
+def _log_namer(default_name: str) -> str:
+    """Rename  recognize.2026-05-07.log.2026-05-08  →  recognize.2026-05-08.log"""
+    if ".log." in default_name:
+        base, date = default_name.rsplit(".log.", 1)
+        return f"{base}.{date}.log"
+    return default_name
+
+_fh.namer = _log_namer
 _fh.setFormatter(_fmt)
 log.addHandler(_fh)
 
@@ -74,11 +88,86 @@ try:
     with open("encodings/encodings.pkl", "rb") as f:
         data = pickle.load(f)
     known_encodings  = data["encodings"]
-    known_identities = data["identities"]  # [{"student_id": "STU001", "name": "John Doe"}, ...]
+    known_identities = data["identities"]
     log.info("Loaded %d known face(s)", len(known_identities))
 except FileNotFoundError:
-    log.error("encodings/encodings.pkl not found. Run encode_faces.py first!")
-    exit(1)
+    known_encodings  = []
+    known_identities = []
+    log.warning("No encodings.pkl found — starting with empty model. The polling thread will encode students automatically.")
+
+# Protects known_encodings / known_identities during hot-swap
+_model_lock = threading.Lock()
+
+# Serialises ALL dlib/face_recognition calls — dlib is not thread-safe
+_dlib_lock = threading.Lock()
+
+
+def _save_encodings() -> None:
+    """Persist the current in-memory model to encodings.pkl so restarts are instant."""
+    os.makedirs("encodings", exist_ok=True)
+    with _model_lock:
+        data = {"encodings": list(known_encodings), "identities": list(known_identities)}
+    try:
+        with open("encodings/encodings.pkl", "wb") as f:
+            pickle.dump(data, f)
+        log.info("Encodings saved to disk (%d total).", len(data["encodings"]))
+    except Exception as e:
+        log.warning("Could not save encodings.pkl: %s", e)
+
+
+def _poll_and_encode() -> None:
+    """
+    Background thread: every ENCODE_POLL_INTERVAL seconds, fetch students
+    with face_encoded=false, encode them, and hot-swap them into the live model.
+    """
+    while True:
+        time.sleep(ENCODE_POLL_INTERVAL)
+        try:
+            resp = requests.get(
+                f"{API_BASE_URL}/students/for-encoding",
+                params={"unencoded": 1},
+                headers={"X-API-Key": API_KEY},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            students = resp.json().get("students", [])
+        except Exception as e:
+            log.warning("Encode poll failed: %s", e)
+            continue
+
+        if not students:
+            continue
+
+        log.info("Encode poll: %d student(s) need encoding.", len(students))
+
+        any_encoded = False
+        for student in students:
+            pairs = encode_student(student, _dlib_lock)
+            if not pairs:
+                log.warning("No encodings generated for %s — skipping.", student["name"])
+                continue
+
+            sid = student["student_id"]
+            with _model_lock:
+                combined = [
+                    (e, i) for e, i in zip(known_encodings, known_identities)
+                    if i["student_id"] != sid
+                ]
+                known_encodings[:] = [c[0] for c in combined]
+                known_identities[:] = [c[1] for c in combined]
+                for enc, ident in pairs:
+                    known_encodings.append(enc)
+                    known_identities.append(ident)
+
+            log.info("Hot-loaded %d encoding(s) for %s.", len(pairs), student["name"])
+            mark_encoded(student["id"], student["name"])
+            any_encoded = True
+
+        if any_encoded:
+            _save_encodings()
+
+threading.Thread(target=_poll_and_encode, daemon=True, name="encode-poller").start()
+log.info("Encode poller started (interval: %ds).", ENCODE_POLL_INTERVAL)
 
 def mark_attendance(student_id: str, full_name: str):
     """Send attendance record to Laravel API (runs in background thread)."""
@@ -185,12 +274,18 @@ while True:
         small = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
         rgb   = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
-        locations  = face_recognition.face_locations(rgb)
-        encodings  = face_recognition.face_encodings(rgb, locations)
+        with _dlib_lock:
+            locations = face_recognition.face_locations(rgb)
+            encodings = face_recognition.face_encodings(rgb, locations)
+
+        # Snapshot the model so the encode-poller thread can't mid-swap during a frame
+        with _model_lock:
+            enc_snap = list(known_encodings)
+            id_snap  = list(known_identities)
 
         for encoding, location in zip(encodings, locations):
-            distances = face_recognition.face_distance(known_encodings, encoding)
-            matches   = face_recognition.compare_faces(known_encodings, encoding, tolerance=TOLERANCE)
+            distances = face_recognition.face_distance(enc_snap, encoding)
+            matches   = face_recognition.compare_faces(enc_snap, encoding, tolerance=TOLERANCE)
 
             name       = "Unknown"
             student_id = None
@@ -200,7 +295,7 @@ while True:
             if len(distances) > 0:
                 best_idx = int(np.argmin(distances))
                 if matches[best_idx]:
-                    identity   = known_identities[best_idx]
+                    identity   = id_snap[best_idx]
                     student_id = identity["student_id"]
                     full_name  = identity["name"]
                     name       = full_name

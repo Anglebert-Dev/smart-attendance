@@ -73,14 +73,11 @@
                                     @if($student->photo === $photo->path)
                                         <span style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap;">AVATAR</span>
                                     @endif
-                                    <form method="POST" action="{{ route('admin.students.photos.destroy', [$student, $photo]) }}"
-                                          style="position:absolute;top:-6px;right:-6px;"
-                                          onsubmit="return confirm('Remove this photo?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            style="width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;"
-                                            title="Remove">×</button>
-                                    </form>
+                                    {{-- Button targets an out-of-form delete form to avoid nesting --}}
+                                    <button type="button"
+                                        onclick="deletePhoto('delete-photo-{{ $photo->id }}')"
+                                        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;"
+                                        title="Remove">×</button>
                                 </div>
                                 @endforeach
                             </div>
@@ -117,15 +114,48 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     {{ isset($student) ? 'Update Student' : 'Add Student' }}
                 </button>
+                @if(isset($student))
+                    <button type="button" onclick="document.getElementById('re-encode-form').submit()"
+                        class="btn-secondary"
+                        title="Flag this student for re-encoding on the next recognition engine poll cycle">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Re-encode Face
+                    </button>
+                @endif
                 <a href="{{ route('admin.students.index') }}" class="btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
 </div>
+
+{{-- Out-of-form helpers — avoids nesting forms inside the main form --}}
+@if(isset($student))
+    <form id="re-encode-form" method="POST"
+          action="{{ route('admin.students.re-encode', $student) }}"
+          style="display:none;">
+        @csrf
+    </form>
+
+    @foreach($student->photos as $photo)
+        <form id="delete-photo-{{ $photo->id }}"
+              method="POST"
+              action="{{ route('admin.students.photos.destroy', [$student, $photo]) }}"
+              style="display:none;">
+            @csrf @method('DELETE')
+        </form>
+    @endforeach
+@endif
+
 @endsection
 
 @push('scripts')
 <script>
+function deletePhoto(formId) {
+    if (confirm('Remove this photo?')) {
+        document.getElementById(formId).submit();
+    }
+}
+
 function previewPhotos(files) {
     const grid = document.getElementById('preview-grid');
     grid.innerHTML = '';

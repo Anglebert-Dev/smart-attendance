@@ -51,11 +51,9 @@
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Method</label>
                             <div class="flex items-center gap-2 mt-1">
-                                @if($record->method === 'face_recognition')
-                                    <span class="text-sm font-medium text-slate-700">🤖 AI Face Recognition</span>
-                                @else
-                                    <span class="text-sm font-medium text-slate-700">✋ Manual Marking</span>
-                                @endif
+                                <span class="text-sm font-medium text-slate-700">
+                                    {!! $record->methodIcon() !!}&nbsp;{{ $record->methodLabel() }}
+                                </span>
                             </div>
                         </div>
                     </div>

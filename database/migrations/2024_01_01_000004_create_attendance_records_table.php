@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('class_id')->constrained('school_classes')->cascadeOnDelete();
             $table->enum('status', ['present', 'absent'])->default('present');
-            $table->enum('method', ['face_recognition', 'manual'])->default('face_recognition');
+            $table->enum('method', ['face_recognition', 'manual' ,'auto'])->default('face_recognition');
             $table->timestamp('marked_at');
             $table->timestamps();
         });

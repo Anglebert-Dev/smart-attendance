@@ -120,6 +120,13 @@ class StudentController extends Controller
         return back()->with('success', 'Photo removed.');
     }
 
+    public function reEncode(Student $student)
+    {
+        $student->update(['face_encoded' => false]);
+
+        return back()->with('success', "{$student->name} flagged for re-encoding. The recognition engine will pick it up within the next poll cycle.");
+    }
+
     public function destroy(Student $student)
     {
         // Deletes all StudentPhoto records (and their files) via model boot

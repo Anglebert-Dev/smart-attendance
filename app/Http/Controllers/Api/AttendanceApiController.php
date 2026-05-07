@@ -76,8 +76,13 @@ class AttendanceApiController extends Controller
      */
     public function studentsForEncoding(Request $request)
     {
-        $students = Student::with(['schoolClass', 'photos'])
-            ->get()
+        $query = Student::with(['schoolClass', 'photos']);
+
+        if ($request->boolean('unencoded')) {
+            $query->where('face_encoded', false);
+        }
+
+        $students = $query->get()
             ->map(function ($s) {
                 $urls = [];
 
@@ -94,10 +99,10 @@ class AttendanceApiController extends Controller
                     'name'       => $s->name,
                     'student_id' => $s->student_id,
                     'class'      => $s->schoolClass->name ?? 'N/A',
-                    'photo_urls' => array_values(array_unique($urls)), // ✅ plural list
+                    'photo_urls' => array_values(array_unique($urls)),
                 ];
             })
-            ->filter(fn($s) => count($s['photo_urls']) > 0)  // only students with photos
+            ->filter(fn($s) => count($s['photo_urls']) > 0)
             ->values();
 
         return response()->json(['students' => $students]);

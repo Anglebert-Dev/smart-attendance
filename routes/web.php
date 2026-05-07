@@ -40,6 +40,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/students/{student}',                              [StudentController::class, 'update'])->name('students.update');
     Route::delete('/students/{student}',                           [StudentController::class, 'destroy'])->name('students.destroy');
     Route::delete('/students/{student}/photos/{photo}',            [StudentController::class, 'destroyPhoto'])->name('students.photos.destroy');
+    Route::post('/students/{student}/re-encode',                   [StudentController::class, 'reEncode'])->name('students.re-encode');
 
     // Teachers
     Route::get('/teachers',                [TeacherController::class, 'index'])->name('teachers.index');

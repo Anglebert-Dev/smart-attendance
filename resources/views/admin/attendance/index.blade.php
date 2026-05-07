@@ -71,8 +71,8 @@
                     <td class="py-3.5 text-sm text-slate-600 whitespace-nowrap">{{ $record->marked_at->format('H:i:s') }}</td>
                     <td class="py-3.5 text-sm text-slate-600 whitespace-nowrap">{{ $record->marked_at->format('M d, Y') }}</td>
                     <td class="py-3.5">
-                        <span class="badge-slate">
-                            {{ $record->method === 'face_recognition' ? '🤖 AI' : '✋ Manual' }}
+                        <span class="badge-{{ $record->methodColor() }}">
+                            {!! $record->methodIcon() !!}&nbsp;{{ $record->methodLabel() }}
                         </span>
                     </td>
                     <td class="py-3.5 text-right">

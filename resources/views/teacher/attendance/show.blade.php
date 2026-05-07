@@ -52,7 +52,7 @@
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Method</label>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-sm font-medium text-slate-700">
-                                    {{ $record->method === 'face_recognition' ? '🤖 AI Face Recognition' : '✋ Manual Marking' }}
+                                    {!! $record->methodIcon() !!}&nbsp;{{ $record->methodLabel() }}
                                 </span>
                             </div>
                         </div>
