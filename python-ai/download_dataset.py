@@ -59,7 +59,7 @@ for s in students:
     print(f"  {label} — {len(urls)} photo(s)")
 
     for url in urls:
-        filename = url.split("/")[-1]
+        filename = url.split("/")[-1].split("?")[0]
         dest     = folder / filename
 
         if dest.exists():

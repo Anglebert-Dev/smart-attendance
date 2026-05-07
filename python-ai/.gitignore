@@ -10,6 +10,9 @@ encodings/
 # Dataset photos (may contain biometric data)
 dataset/
 
+# Logs (rotated daily, no need to commit)
+logs/
+
 # Python cache
 __pycache__/
 *.pyc

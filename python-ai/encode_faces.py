@@ -55,6 +55,11 @@ def mark_encoded(db_id: int, name: str) -> None:
         print(f"  [API WARNING] Could not mark {name} as encoded: {e}")
 
 
+if not os.path.isdir(DATASET_PATH):
+    print(f"[ERROR] Dataset folder '{DATASET_PATH}' not found.")
+    print("        Run download_dataset.py first to fetch student photos.")
+    exit(1)
+
 print("[INFO] Starting face encoding...")
 print(f"[INFO] Dataset path: {os.path.abspath(DATASET_PATH)}\n")
 print("[INFO] Fetching student ID map from Laravel API...")

@@ -7,11 +7,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", os.getenv("QT_QPA_PLATFORM", "xcb"))
 
 import cv2
 import face_recognition
+import logging
 import pickle
 import numpy as np
 import requests
 import time
+import threading
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 
 from config import (
     API_BASE_URL,
@@ -21,6 +24,29 @@ from config import (
     PROCESS_EVERY_N_FRAMES,
     MARK_COOLDOWN_SECONDS,
 )
+
+os.makedirs("logs", exist_ok=True)
+
+log = logging.getLogger("smartattend")
+log.setLevel(logging.DEBUG)
+
+_fmt = logging.Formatter(
+    "%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+_fh = TimedRotatingFileHandler(
+    "logs/recognize.log",
+    when="midnight",
+    backupCount=30,
+    encoding="utf-8",
+)
+_fh.setFormatter(_fmt)
+log.addHandler(_fh)
+
+_ch = logging.StreamHandler()
+_ch.setFormatter(_fmt)
+log.addHandler(_ch)
 
 marked_today   = {}   # { "STU-001": "2025-04-17" }
 notified_today = set()
@@ -43,28 +69,25 @@ def cooldown_ok(student_id: str) -> bool:
         return True
     return False
 
-print("[INFO] Loading face encodings...")
+log.info("Loading face encodings...")
 try:
     with open("encodings/encodings.pkl", "rb") as f:
         data = pickle.load(f)
     known_encodings  = data["encodings"]
     known_identities = data["identities"]  # [{"student_id": "STU001", "name": "John Doe"}, ...]
-    print(f"[INFO] Loaded {len(known_identities)} known face(s)\n")
+    log.info("Loaded %d known face(s)", len(known_identities))
 except FileNotFoundError:
-    print("encodings/encodings.pkl not found. Run encode_faces.py first!")
+    log.error("encodings/encodings.pkl not found. Run encode_faces.py first!")
     exit(1)
 
-# ── API Call ──────────────────────────────────────────────────────────
 def mark_attendance(student_id: str, full_name: str):
-    """Send attendance record to Laravel API."""
+    """Send attendance record to Laravel API (runs in background thread)."""
     try:
         response = requests.post(
             f"{API_BASE_URL}/attendance",
-            json={
-                "student_id": student_id,
-            },
+            json={"student_id": student_id},
             headers={"X-API-Key": API_KEY},
-            timeout=5
+            timeout=5,
         )
 
         if response.status_code == 200:
@@ -73,25 +96,24 @@ def mark_attendance(student_id: str, full_name: str):
             if data.get("already_marked"):
                 record_marked(student_id)
                 if student_id not in notified_today:
-                    print(f"[INFO] {full_name} ({student_id}) already marked earlier today.")
+                    log.info("%s (%s) already marked earlier today.", full_name, student_id)
                     notified_today.add(student_id)
                 return
 
             class_name = data.get("class", "N/A")
-            time_str   = datetime.now().strftime("%H:%M:%S")
-            print(f"[✓] Marked: {full_name} ({student_id}) | Class: {class_name} | {time_str}")
+            log.info("MARKED  %s (%s) | Class: %s", full_name, student_id, class_name)
             record_marked(student_id)
 
         elif response.status_code == 404:
-            print(f"[WARN] Student {student_id} not found in Laravel database.")
+            log.warning("Student %s not found in Laravel database.", student_id)
 
         else:
-            print(f"[ERROR] API returned {response.status_code} for {student_id}")
+            log.error("API returned %d for %s", response.status_code, student_id)
 
     except requests.exceptions.ConnectionError:
-        print(f"[WARN] Cannot reach API — is Laravel running? Skipping {student_id}")
+        log.warning("Cannot reach API — is Laravel running? Skipping %s", student_id)
     except requests.exceptions.Timeout:
-        print(f"[WARN] API timeout for {student_id}")
+        log.warning("API timeout for %s", student_id)
 
 def open_camera(primary_source):
     sources = (
@@ -99,10 +121,10 @@ def open_camera(primary_source):
         else [primary_source] + [i for i in range(3) if i != primary_source]
     )
     for src in sources:
-        print(f"[INFO] Trying camera: {src}")
+        log.info("Trying camera: %s", src)
         cam = cv2.VideoCapture(src)
         if cam.isOpened():
-            print(f"[INFO] Opened camera: {src}")
+            log.info("Opened camera: %s", src)
             return cam
         cam.release()
     return None
@@ -110,28 +132,44 @@ def open_camera(primary_source):
 cap = open_camera(CAMERA_SOURCE)
 
 if cap is None:
-    print(f" Could not open any camera (tried {CAMERA_SOURCE} and fallbacks).")
-    print("   Check: ls /dev/video*")
+    log.error(
+        "Could not open any camera (tried %s and fallbacks). Check: ls /dev/video*",
+        CAMERA_SOURCE,
+    )
     exit(1)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-print("[INFO] Recognition running. Press Q to quit.\n")
+log.info("Recognition running. Press Q to quit.")
 
 frame_count = 0
 today_str   = datetime.now().strftime("%Y-%m-%d")
 
 while True:
     try:
+        if cap is None:
+            break
         ret, frame = cap.read()
         if not ret:
-            print("[ERROR] Failed to grab frame from camera.")
-            break
+            log.warning("Frame grab failed, attempting reconnect...")
+            for attempt in range(1, 6):
+                time.sleep(1)
+                if cap is not None:
+                    cap.release()
+                cap = open_camera(CAMERA_SOURCE)
+                if cap is not None:
+                    ret, frame = cap.read()
+                    if ret:
+                        log.info("Reconnected on attempt %d.", attempt)
+                        break
+            else:
+                log.error("Could not reconnect to camera. Exiting.")
+                break
 
         current_day = datetime.now().strftime("%Y-%m-%d")
         if current_day != today_str:
-            print(f"\n[INFO] New day detected ({current_day}). Resetting attendance tracking.\n")
+            log.info("New day detected (%s). Resetting attendance tracking.", current_day)
             marked_today.clear()
             notified_today.clear()
             today_str = current_day
@@ -151,13 +189,13 @@ while True:
         encodings  = face_recognition.face_encodings(rgb, locations)
 
         for encoding, location in zip(encodings, locations):
-            distances   = face_recognition.face_distance(known_encodings, encoding)
-            matches     = face_recognition.compare_faces(known_encodings, encoding, tolerance=TOLERANCE)
+            distances = face_recognition.face_distance(known_encodings, encoding)
+            matches   = face_recognition.compare_faces(known_encodings, encoding, tolerance=TOLERANCE)
 
-            name        = "Unknown"
-            student_id  = None
-            full_name   = "Unknown"
-            color       = (0, 0, 255)  # red for unknown
+            name       = "Unknown"
+            student_id = None
+            full_name  = "Unknown"
+            color      = (0, 0, 255)  # red for unknown
 
             if len(distances) > 0:
                 best_idx = int(np.argmin(distances))
@@ -170,26 +208,28 @@ while True:
 
                     if already_marked_today(student_id):
                         if student_id not in notified_today:
-                            print(f"[INFO] {full_name} already marked present today.")
+                            log.info("%s already marked present today.", full_name)
                             notified_today.add(student_id)
                     elif cooldown_ok(student_id):
-                        mark_attendance(student_id, full_name)
+                        threading.Thread(
+                            target=mark_attendance,
+                            args=(student_id, full_name),
+                            daemon=True,
+                        ).start()
                 else:
-                    print(f"[UNKNOWN] Unrecognized face detected at {datetime.now().strftime('%H:%M:%S')}")
+                    log.info("Unrecognized face detected.")
 
             top, right, bottom, left = location
             top    *= 4; right  *= 4
             bottom *= 4; left   *= 4
 
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-
             cv2.rectangle(frame, (left, bottom - 40), (right, bottom), color, cv2.FILLED)
-
             cv2.putText(
                 frame, name,
                 (left + 6, bottom - 10),
                 cv2.FONT_HERSHEY_DUPLEX,
-                0.65, (255, 255, 255), 1
+                0.65, (255, 255, 255), 1,
             )
 
             if student_id:
@@ -198,7 +238,7 @@ while True:
                     frame, f"{confidence}%",
                     (left + 6, top - 8),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5, color, 1
+                    0.5, color, 1,
                 )
 
         cv2.putText(
@@ -206,29 +246,30 @@ while True:
             datetime.now().strftime("%Y-%m-%d  %H:%M:%S"),
             (10, 28),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.65, (255, 255, 255), 2
+            0.65, (255, 255, 255), 2,
         )
         cv2.putText(
             frame,
             f"Marked today: {len(marked_today)}",
             (10, 56),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.55, (0, 255, 180), 2
+            0.55, (0, 255, 180), 2,
         )
 
         cv2.imshow("SmartAttend — Face Recognition", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            print("\n[INFO] Quit signal received.")
+            log.info("Quit signal received.")
             break
 
     except KeyboardInterrupt:
-        print("\n[INFO] Interrupted by user.")
+        log.info("Interrupted by user.")
         break
     except Exception as e:
-        print(f"[ERROR] Frame processing error: {e}. Continuing...")
+        log.error("Frame processing error: %s. Continuing...", e)
         continue
 
-cap.release()
+if cap is not None:
+    cap.release()
 cv2.destroyAllWindows()
-print("[INFO] Camera closed. System stopped.")
+log.info("Camera closed. System stopped.")
