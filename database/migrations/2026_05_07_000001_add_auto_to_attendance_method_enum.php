@@ -1,17 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE attendance_records MODIFY COLUMN method ENUM('face_recognition', 'manual', 'auto') NOT NULL DEFAULT 'face_recognition'");
+        Schema::table('attendance_records', function (Blueprint $table) {
+            $table->enum('method', ['face_recognition', 'manual', 'auto'])->default('face_recognition')->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE attendance_records MODIFY COLUMN method ENUM('face_recognition', 'manual') NOT NULL DEFAULT 'face_recognition'");
+        Schema::table('attendance_records', function (Blueprint $table) {
+            $table->enum('method', ['face_recognition', 'manual'])->default('face_recognition')->change();
+        });
     }
 };
