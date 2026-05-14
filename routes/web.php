@@ -55,6 +55,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Attendance
     Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/export', [AdminAttendance::class, 'exportCsv'])->name('attendance.export');
     Route::get('/attendance/{record}', [AdminAttendance::class, 'show'])->name('attendance.show');
 
     // API Keys
@@ -69,6 +70,7 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->name('teacher.')->gro
     Route::get('/classes',   [TeacherClassController::class, 'index'])->name('classes');
     Route::get('/students',  [TeacherStudentController::class, 'index'])->name('students');
     Route::get('/attendance',[TeacherAttendance::class, 'index'])->name('attendance');
+    Route::get('/attendance/export', [TeacherAttendance::class, 'exportCsv'])->name('attendance.export');
     Route::get('/attendance/{record}',[TeacherAttendance::class, 'show'])->name('attendance.show');
 });
 
@@ -79,5 +81,6 @@ Route::middleware(['auth', 'hod'])->prefix('hod')->name('hod.')->group(function 
     Route::get('/classes/{class}', [\App\Http\Controllers\Hod\ClassController::class, 'show'])->name('classes.show');
     Route::get('/students',  [\App\Http\Controllers\Hod\StudentController::class, 'index'])->name('students.index');
     Route::get('/attendance',[\App\Http\Controllers\Hod\AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/export', [\App\Http\Controllers\Hod\AttendanceController::class, 'exportCsv'])->name('attendance.export');
     Route::get('/attendance/{record}',[\App\Http\Controllers\Hod\AttendanceController::class, 'show'])->name('attendance.show');
 });

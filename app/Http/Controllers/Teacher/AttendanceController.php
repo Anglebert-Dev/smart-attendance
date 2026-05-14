@@ -8,8 +8,11 @@ use App\Models\SchoolClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\ExportsAttendanceCsv;
+
 class AttendanceController extends Controller
 {
+    use ExportsAttendanceCsv;
     public function index(Request $request)
     {
         $classIds = SchoolClass::where('teacher_id', Auth::id())->pluck('id');
@@ -43,5 +46,28 @@ class AttendanceController extends Controller
 
         $record->load(['student.schoolClass', 'schoolClass.teacher']);
         return view('teacher.attendance.show', compact('record'));
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $classIds = SchoolClass::where('teacher_id', Auth::id())->pluck('id');
+
+        if ($request->class_id && !$classIds->contains((int) $request->class_id)) {
+            abort(403, 'You do not have access to this class.');
+        }
+
+        $records = AttendanceRecord::with(['student', 'schoolClass'])
+            ->whereIn('class_id', $classIds)
+            ->when($request->search, fn($q) =>
+                $q->whereHas('student', fn($sq) =>
+                    $sq->where('name', 'like', "%{$request->search}%")
+                )
+            )
+            ->when($request->class_id, fn($q) => $q->where('class_id', $request->class_id))
+            ->when($request->date,     fn($q) => $q->whereDate('marked_at', $request->date))
+            ->latest('marked_at')
+            ->get();
+
+        return $this->downloadCsv($records);
     }
 }

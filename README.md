@@ -155,8 +155,8 @@ php artisan attendance:mark-absent --date=2026-05-06
 
 ```bash
 cd python-ai
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 cp .env.example .env
@@ -167,16 +167,16 @@ cp .env.example .env
 
 ```bash
 # Download student photos from Laravel (requires server to be running)
-python download_dataset.py
+python3 download_dataset.py
 
 # Encode faces (generates encodings/encodings.pkl)
-python encode_faces.py
+python3 encode_faces.py
 ```
 
 ### 6. Run the Recognition Engine
 
 ```bash
-python recognize.py
+python3 recognize.py
 ```
 
 Press `Q` in the camera window to stop. Logs are written to `logs/recognize.log` and rotated daily.
