@@ -216,12 +216,10 @@ def open_camera(primary_source):
 
 cap = open_camera(CAMERA_SOURCE)
 
-if cap is None:
-    log.error(
-        "Could not open any camera (tried %s and fallbacks). Check: ls /dev/video*",
-        CAMERA_SOURCE,
-    )
-    exit(1)
+while cap is None:
+    log.warning("Could not open any camera (tried %s). Retrying in 5 seconds...", CAMERA_SOURCE)
+    time.sleep(5)
+    cap = open_camera(CAMERA_SOURCE)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -238,19 +236,19 @@ while True:
         ret, frame = cap.read()
         if not ret:
             log.warning("Frame grab failed, attempting reconnect...")
-            for attempt in range(1, 6):
-                time.sleep(1)
+            while True:
+                time.sleep(5)
                 if cap is not None:
                     cap.release()
                 cap = open_camera(CAMERA_SOURCE)
                 if cap is not None:
                     ret, frame = cap.read()
                     if ret:
-                        log.info("Reconnected on attempt %d.", attempt)
+                        log.info("Reconnected to camera successfully.")
+                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
                         break
-            else:
-                log.error("Could not reconnect to camera. Exiting.")
-                break
+                log.warning("Still waiting for camera to be plugged in...")
 
         current_day = datetime.now().strftime("%Y-%m-%d")
         if current_day != today_str:
