@@ -24,6 +24,7 @@ MARK_COOLDOWN_SECONDS  = int(os.getenv("MARK_COOLDOWN_SECONDS", "60"))
 ENCODE_POLL_INTERVAL   = int(os.getenv("ENCODE_POLL_INTERVAL", "60"))
 CONFIRM_FRAMES         = int(os.getenv("CONFIRM_FRAMES", "3"))  # consecutive processed frames before marking
 QT_QPA_PLATFORM        = os.getenv("QT_QPA_PLATFORM", "xcb")
+HEADLESS               = os.getenv("HEADLESS", "true").lower() == "true"
 
 if not API_KEY:
     raise RuntimeError(

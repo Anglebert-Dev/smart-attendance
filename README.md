@@ -133,10 +133,12 @@ php artisan serve
 
 ### 2. Scheduler Setup (auto-absent at 17:00)
 
+> **Important:** This cron job must be configured on the server/machine that hosts the Laravel application. Without it, automated absences will not be recorded.
+
 Add this single line to your crontab (`crontab -e`):
 
-```
-* * * * * cd /path/to/smart-attendance && php artisan schedule:run >> /dev/null 2>&1
+```text
+* * * * * cd /absolute/path/to/smart-attendance && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 To trigger it manually for any date:
@@ -153,6 +155,7 @@ php artisan attendance:mark-absent --date=2026-05-06
 
 ### 4. Python AI Engine Setup
 
+**Option A: Standard Desktop/Laptop Installation**
 ```bash
 cd python-ai
 python3 -m venv .venv
@@ -163,6 +166,15 @@ cp .env.example .env
 # Set API_BASE_URL and API_KEY in python-ai/.env
 ```
 
+**Option B: Raspberry Pi Installation**
+If deploying the camera station to a Raspberry Pi, use the automated script which handles compiling heavy dependencies like `dlib` and optionally sets up a background system service.
+```bash
+cd python-ai
+chmod +x deploy_rpi.sh
+./deploy_rpi.sh
+```
+*Note: If your Raspberry Pi runs without a monitor attached, make sure to set `HEADLESS=true` in your `python-ai/.env` file to prevent the app from crashing while trying to render the camera feed.*
+
 ### 5. Prepare the Dataset
 
 ```bash
@@ -172,6 +184,8 @@ python3 download_dataset.py
 # Encode faces (generates encodings/encodings.pkl)
 python3 encode_faces.py
 ```
+
+> **Troubleshooting Tip:** If you ever delete or modify student names in the Laravel database, the Python script might still recognize them by their old names because they are cached. To fix this, delete the old encodings file (`rm encodings/encodings.pkl`) and re-run the two scripts above.
 
 ### 6. Run the Recognition Engine
 

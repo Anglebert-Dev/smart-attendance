@@ -25,6 +25,7 @@ from config import (
     MARK_COOLDOWN_SECONDS,
     ENCODE_POLL_INTERVAL,
     CONFIRM_FRAMES,
+    HEADLESS,
 )
 from encoder import encode_student, mark_encoded
 
@@ -263,9 +264,10 @@ while True:
         frame_count += 1
 
         if frame_count % PROCESS_EVERY_N_FRAMES != 0:
-            cv2.imshow("SmartAttend — Face Recognition", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            if not HEADLESS:
+                cv2.imshow("SmartAttend — Face Recognition", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             continue
 
         small = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
@@ -313,53 +315,55 @@ while True:
                 else:
                     log.info("Unrecognized face detected.")
 
-            top, right, bottom, left = location
-            top    *= 4; right  *= 4
-            bottom *= 4; left   *= 4
+            if not HEADLESS:
+                top, right, bottom, left = location
+                top    *= 4; right  *= 4
+                bottom *= 4; left   *= 4
 
-            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-            cv2.rectangle(frame, (left, bottom - 40), (right, bottom), color, cv2.FILLED)
-            cv2.putText(
-                frame, name,
-                (left + 6, bottom - 10),
-                cv2.FONT_HERSHEY_DUPLEX,
-                0.65, (255, 255, 255), 1,
-            )
-
-            if student_id:
-                confidence = round((1 - float(np.min(distances))) * 100, 1)
+                cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                cv2.rectangle(frame, (left, bottom - 40), (right, bottom), color, cv2.FILLED)
                 cv2.putText(
-                    frame, f"{confidence}%",
-                    (left + 6, top - 8),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5, color, 1,
+                    frame, name,
+                    (left + 6, bottom - 10),
+                    cv2.FONT_HERSHEY_DUPLEX,
+                    0.65, (255, 255, 255), 1,
                 )
+
+                if student_id:
+                    confidence = round((1 - float(np.min(distances))) * 100, 1)
+                    cv2.putText(
+                        frame, f"{confidence}%",
+                        (left + 6, top - 8),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, color, 1,
+                    )
 
         # Drop streak for any student whose face left the frame
         for sid in list(_streak.keys()):
             if sid not in seen_this_frame:
                 del _streak[sid]
 
-        cv2.putText(
-            frame,
-            datetime.now().strftime("%Y-%m-%d  %H:%M:%S"),
-            (10, 28),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65, (255, 255, 255), 2,
-        )
-        cv2.putText(
-            frame,
-            f"Marked today: {marked_count}",
-            (10, 56),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55, (0, 255, 180), 2,
-        )
+        if not HEADLESS:
+            cv2.putText(
+                frame,
+                datetime.now().strftime("%Y-%m-%d  %H:%M:%S"),
+                (10, 28),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65, (255, 255, 255), 2,
+            )
+            cv2.putText(
+                frame,
+                f"Marked today: {marked_count}",
+                (10, 56),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55, (0, 255, 180), 2,
+            )
 
-        cv2.imshow("SmartAttend — Face Recognition", frame)
+            cv2.imshow("SmartAttend — Face Recognition", frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            log.info("Quit signal received.")
-            break
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                log.info("Quit signal received.")
+                break
 
     except KeyboardInterrupt:
         log.info("Interrupted by user.")

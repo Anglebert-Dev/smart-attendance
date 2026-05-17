@@ -18,6 +18,7 @@ class MarkAbsentStudents extends Command
             : now()->toDateString();
 
         $this->info("Marking absent for {$date}...");
+        \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: Marking absent for {$date}...");
 
         $recorded = AttendanceRecord::whereDate('marked_at', $date)
             ->pluck('student_id')
@@ -29,6 +30,7 @@ class MarkAbsentStudents extends Command
 
         if ($unrecorded->isEmpty()) {
             $this->info('All students already have a record for today.');
+            \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: All students already have a record for today.");
             return self::SUCCESS;
         }
 
@@ -46,6 +48,7 @@ class MarkAbsentStudents extends Command
         AttendanceRecord::insert($rows);
 
         $this->info("Marked {$unrecorded->count()} student(s) absent.");
+        \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: Marked {$unrecorded->count()} student(s) absent.");
 
         return self::SUCCESS;
     }
