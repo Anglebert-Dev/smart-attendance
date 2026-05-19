@@ -106,7 +106,9 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-slate-800">{{ $class->name }}</p>
-                        <p class="text-xs text-slate-400">{{ $class->teacher->name ?? 'No teacher assigned' }}</p>
+                        <div class="mt-0.5">
+                            <x-teacher-avatars :teachers="$class->teachers" />
+                        </div>
                     </div>
                     <div class="text-right flex-shrink-0">
                         <span class="badge-blue">{{ $class->students_count }} students</span>

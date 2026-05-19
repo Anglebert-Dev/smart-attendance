@@ -4,6 +4,10 @@
 @section('page-title', isset($class) ? 'Edit Class' : 'Create Class')
 @section('page-subtitle', isset($class) ? 'Update class details' : 'Add a new class to the system')
 
+@push('styles')
+    @include('partials.select2')
+@endpush
+
 @section('content')
 <div class="max-w-2xl">
     <div class="card">
@@ -27,17 +31,21 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Assign Teacher</label>
-                    <select name="teacher_id" class="input">
-                        <option value="">— No teacher assigned —</option>
+                    <label for="teacher_ids" class="block text-sm font-medium text-slate-700 mb-1.5">Assign Teachers</label>
+                    <p class="text-xs text-slate-500 mb-2">Search and select one or more teachers for this class.</p>
+                    <select id="teacher_ids" name="teacher_ids[]" class="input w-full" multiple>
+                        @php
+                            $selectedIds = array_map('intval', (array) old('teacher_ids', isset($class) ? $class->teachers->pluck('id')->all() : []));
+                        @endphp
                         @foreach($teachers as $teacher)
                             <option value="{{ $teacher->id }}"
-                                {{ old('teacher_id', $class->teacher_id ?? '') == $teacher->id ? 'selected' : '' }}>
+                                {{ in_array($teacher->id, $selectedIds, true) ? 'selected' : '' }}>
                                 {{ $teacher->name }} ({{ $teacher->email }})
                             </option>
                         @endforeach
                     </select>
-                    @error('teacher_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    @error('teacher_ids')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    @error('teacher_ids.*')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
             </div>
 
@@ -52,3 +60,18 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        $('#teacher_ids').select2({
+            placeholder: 'Search teachers by name or email…',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
+        });
+    });
+</script>
+@endpush

@@ -13,7 +13,7 @@ class DashboardController extends Controller
     public function index()
     {
         $teacher  = Auth::user();
-        $classIds = SchoolClass::where('teacher_id', $teacher->id)->pluck('id');
+        $classIds = SchoolClass::forTeacher($teacher->id)->pluck('id');
 
         $stats = [
             'classes'          => $classIds->count(),
@@ -22,7 +22,7 @@ class DashboardController extends Controller
                 ->whereDate('marked_at', today())->count(),
         ];
 
-        $classes = SchoolClass::where('teacher_id', $teacher->id)
+        $classes = SchoolClass::forTeacher($teacher->id)
             ->withCount('students')
             ->get();
 

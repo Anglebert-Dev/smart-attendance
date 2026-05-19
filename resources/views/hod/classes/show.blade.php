@@ -16,17 +16,21 @@
                     <p class="text-sm font-medium text-slate-800">{{ $class->name }}</p>
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Assigned Teacher</label>
-                    <div class="flex items-center gap-2">
-                        @if($class->teacher)
-                            <div class="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-xs font-bold">
-                                {{ strtoupper(substr($class->teacher->name, 0, 1)) }}
-                            </div>
-                            <span class="text-sm text-slate-700">{{ $class->teacher->name }}</span>
-                        @else
-                            <span class="text-sm text-slate-400 italic">No teacher assigned</span>
-                        @endif
-                    </div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Assigned Teachers</label>
+                    @if($class->teachers->count())
+                        <div class="flex flex-wrap gap-3 mt-1">
+                            @foreach($class->teachers as $teacher)
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 text-xs font-bold">
+                                        {{ strtoupper(substr($teacher->name, 0, 1)) }}
+                                    </div>
+                                    <span class="text-sm text-slate-700">{{ $teacher->name }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-sm text-slate-400 italic">No teachers assigned</span>
+                    @endif
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Student Count</label>

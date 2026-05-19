@@ -26,7 +26,7 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        $classes = SchoolClass::with('teacher')
+        $classes = SchoolClass::with('teachers')
             ->withCount('students')
             ->latest()
             ->take(6)

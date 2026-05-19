@@ -16,7 +16,8 @@ class User extends Authenticatable
 
     public function classes()
     {
-        return $this->hasMany(SchoolClass::class, 'teacher_id');
+        return $this->belongsToMany(SchoolClass::class, 'class_teacher', 'user_id', 'class_id')
+            ->withTimestamps();
     }
 
     public function isAdmin(): bool

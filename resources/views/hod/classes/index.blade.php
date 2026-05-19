@@ -12,7 +12,7 @@
             <thead>
                 <tr class="border-b border-slate-100">
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Class Name</th>
-                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Teacher</th>
+                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Teachers</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Students</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Created</th>
                     <th class="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Details</th>
@@ -31,14 +31,8 @@
                             </div>
                         </div>
                     </td>
-                    <td class="py-3.5">
-                        @if($class->teacher)
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-slate-700">{{ $class->teacher->name }}</span>
-                            </div>
-                        @else
-                            <span class="text-xs text-slate-400 italic">Not assigned</span>
-                        @endif
+                    <td class="py-3.5 max-w-[240px]">
+                        <x-teacher-avatars :teachers="$class->teachers" />
                     </td>
                     <td class="py-3.5">
                         <span class="badge-blue">{{ $class->students_count }} students</span>

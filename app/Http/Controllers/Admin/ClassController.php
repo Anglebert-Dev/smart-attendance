@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ClassController extends Controller
 {
     public function index()
     {
-        $classes = SchoolClass::with('teacher')
+        $classes = SchoolClass::with('teachers')
             ->withCount('students')
             ->latest()
             ->paginate(15);
@@ -28,12 +29,18 @@ class ClassController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-            'teacher_id'  => 'nullable|exists:users,id',
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string|max:500',
+            'teacher_ids'   => 'nullable|array',
+            'teacher_ids.*' => Rule::exists('users', 'id')->where('role', 'teacher'),
         ]);
 
-        SchoolClass::create($data);
+        $class = SchoolClass::create([
+            'name'        => $data['name'],
+            'description' => $data['description'] ?? null,
+        ]);
+
+        $class->teachers()->sync($data['teacher_ids'] ?? []);
 
         return redirect()->route('admin.classes.index')
             ->with('success', 'Class created successfully.');
@@ -41,6 +48,7 @@ class ClassController extends Controller
 
     public function edit(SchoolClass $class)
     {
+        $class->load('teachers');
         $teachers = User::where('role', 'teacher')->orderBy('name')->get();
         return view('admin.classes.form', compact('class', 'teachers'));
     }
@@ -48,12 +56,18 @@ class ClassController extends Controller
     public function update(Request $request, SchoolClass $class)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-            'teacher_id'  => 'nullable|exists:users,id',
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string|max:500',
+            'teacher_ids'   => 'nullable|array',
+            'teacher_ids.*' => Rule::exists('users', 'id')->where('role', 'teacher'),
         ]);
 
-        $class->update($data);
+        $class->update([
+            'name'        => $data['name'],
+            'description' => $data['description'] ?? null,
+        ]);
+
+        $class->teachers()->sync($data['teacher_ids'] ?? []);
 
         return redirect()->route('admin.classes.index')
             ->with('success', 'Class updated successfully.');

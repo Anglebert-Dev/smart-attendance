@@ -10,7 +10,7 @@ class ClassController extends Controller
 {
     public function index()
     {
-        $classes = SchoolClass::where('teacher_id', Auth::id())
+        $classes = SchoolClass::forTeacher(Auth::id())
             ->withCount('students')
             ->get();
 

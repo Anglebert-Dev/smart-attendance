@@ -5,18 +5,18 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\SchoolClass;
+use App\Traits\ExportsAttendanceCsv;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
-use App\Traits\ExportsAttendanceCsv;
 
 class AttendanceController extends Controller
 {
     use ExportsAttendanceCsv;
+
     public function index(Request $request)
     {
-        $classIds = SchoolClass::where('teacher_id', Auth::id())->pluck('id');
-        $classes  = SchoolClass::where('teacher_id', Auth::id())->get();
+        $classIds = SchoolClass::forTeacher(Auth::id())->pluck('id');
+        $classes  = SchoolClass::forTeacher(Auth::id())->get();
 
         if ($request->class_id && !$classIds->contains((int) $request->class_id)) {
             abort(403, 'You do not have access to this class.');
@@ -24,13 +24,13 @@ class AttendanceController extends Controller
 
         $records = AttendanceRecord::with(['student', 'schoolClass'])
             ->whereIn('class_id', $classIds)
-            ->when($request->search, fn($q) =>
-                $q->whereHas('student', fn($sq) =>
+            ->when($request->search, fn ($q) =>
+                $q->whereHas('student', fn ($sq) =>
                     $sq->where('name', 'like', "%{$request->search}%")
                 )
             )
-            ->when($request->class_id, fn($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date,     fn($q) => $q->whereDate('marked_at', $request->date))
+            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
+            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
             ->latest('marked_at')
             ->paginate(20)
             ->withQueryString();
@@ -40,17 +40,17 @@ class AttendanceController extends Controller
 
     public function show(AttendanceRecord $record)
     {
-        if ($record->schoolClass->teacher_id !== Auth::id()) {
+        if (!$record->schoolClass->hasTeacher(Auth::id())) {
             abort(403, 'You do not have access to this record.');
         }
 
-        $record->load(['student.schoolClass', 'schoolClass.teacher']);
+        $record->load(['student.schoolClass', 'schoolClass.teachers']);
         return view('teacher.attendance.show', compact('record'));
     }
 
     public function exportCsv(Request $request)
     {
-        $classIds = SchoolClass::where('teacher_id', Auth::id())->pluck('id');
+        $classIds = SchoolClass::forTeacher(Auth::id())->pluck('id');
 
         if ($request->class_id && !$classIds->contains((int) $request->class_id)) {
             abort(403, 'You do not have access to this class.');
@@ -58,13 +58,13 @@ class AttendanceController extends Controller
 
         $records = AttendanceRecord::with(['student', 'schoolClass'])
             ->whereIn('class_id', $classIds)
-            ->when($request->search, fn($q) =>
-                $q->whereHas('student', fn($sq) =>
+            ->when($request->search, fn ($q) =>
+                $q->whereHas('student', fn ($sq) =>
                     $sq->where('name', 'like', "%{$request->search}%")
                 )
             )
-            ->when($request->class_id, fn($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date,     fn($q) => $q->whereDate('marked_at', $request->date))
+            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
+            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
             ->latest('marked_at')
             ->get();
 

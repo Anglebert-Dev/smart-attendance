@@ -47,7 +47,7 @@
                         @foreach($classes as $class)
                             <option value="{{ $class->id }}"
                                 {{ old('class_id', $student->class_id ?? '') == $class->id ? 'selected' : '' }}>
-                                {{ $class->name }} {{ $class->teacher ? '(Teacher: ' . $class->teacher->name . ')' : '' }}
+                                {{ $class->name }}@if($class->teachers->count()) ({{ $class->teachers->pluck('name')->join(', ') }})@endif
                             </option>
                         @endforeach
                     </select>

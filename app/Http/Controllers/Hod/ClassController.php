@@ -10,13 +10,13 @@ class ClassController extends Controller
 {
     public function index()
     {
-        $classes = SchoolClass::with('teacher')->withCount('students')->get();
+        $classes = SchoolClass::with('teachers')->withCount('students')->get();
         return view('hod.classes.index', compact('classes'));
     }
 
     public function show(SchoolClass $class)
     {
-        $class->load(['teacher', 'students']);
+        $class->load(['teachers', 'students']);
         return view('hod.classes.show', compact('class'));
     }
 }

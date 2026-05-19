@@ -30,7 +30,7 @@ class StudentController extends Controller
 
     public function create()
     {
-        $classes = SchoolClass::orderBy('name')->get();
+        $classes = SchoolClass::with('teachers')->orderBy('name')->get();
         return view('admin.students.form', compact('classes'));
     }
 
@@ -65,7 +65,7 @@ class StudentController extends Controller
 
     public function edit(Student $student)
     {
-        $classes = SchoolClass::orderBy('name')->get();
+        $classes = SchoolClass::with('teachers')->orderBy('name')->get();
         $student->load('photos');
         return view('admin.students.form', compact('student', 'classes'));
     }
