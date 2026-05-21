@@ -29,8 +29,24 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Department <span class="text-red-500">*</span></label>
-                    <input type="text" name="department" value="{{ old('department', $hod->department ?? '') }}" required
-                        class="input" placeholder="Computer Science">
+                    <select name="department" required class="input" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                        <option value="" disabled {{ old('department', $hod->department ?? '') == '' ? 'selected' : '' }}>Select a department</option>
+                        <optgroup label="EEE">
+                            <option value="electronics" {{ old('department', $hod->department ?? '') == 'electronics' ? 'selected' : '' }}>Electronics</option>
+                            <option value="telecommunication" {{ old('department', $hod->department ?? '') == 'telecommunication' ? 'selected' : '' }}>Telecommunication</option>
+                            <option value="electrical" {{ old('department', $hod->department ?? '') == 'electrical' ? 'selected' : '' }}>Electrical</option>
+                        </optgroup>
+                        <optgroup label="IT">
+                            <option value="computer science" {{ old('department', $hod->department ?? '') == 'computer science' ? 'selected' : '' }}>Computer Science</option>
+                            <option value="information management" {{ old('department', $hod->department ?? '') == 'information management' ? 'selected' : '' }}>Information Management</option>
+                            <option value="software dev" {{ old('department', $hod->department ?? '') == 'software dev' ? 'selected' : '' }}>Software Dev</option>
+                        </optgroup>
+                        <optgroup label="FINANCE">
+                            <option value="accounting" {{ old('department', $hod->department ?? '') == 'accounting' ? 'selected' : '' }}>Accounting</option>
+                            <option value="bussiness" {{ old('department', $hod->department ?? '') == 'bussiness' ? 'selected' : '' }}>Business</option>
+                            <option value="procurement" {{ old('department', $hod->department ?? '') == 'procurement' ? 'selected' : '' }}>Procurement</option>
+                        </optgroup>
+                    </select>
                     @error('department')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
 
