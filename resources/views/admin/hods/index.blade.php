@@ -37,7 +37,15 @@
                         </div>
                     </td>
                     <td class="py-3.5 text-sm text-slate-600">{{ $hod->email }}</td>
-                    <td class="py-3.5 text-sm text-slate-600">{{ $hod->department ?? 'N/A' }}</td>
+                    <td class="py-3.5 text-sm text-slate-600">
+                        @if($hod->department)
+                            <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                                {{ ucwords($hod->department) }}
+                            </span>
+                        @else
+                            <span class="text-slate-400 italic text-xs">N/A</span>
+                        @endif
+                    </td>
                     <td class="py-3.5 text-xs text-slate-400">{{ $hod->created_at->format('M d, Y') }}</td>
                     <td class="py-3.5">
                         <div class="flex items-center justify-end gap-2">
