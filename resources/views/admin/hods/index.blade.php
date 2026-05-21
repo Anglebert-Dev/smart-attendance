@@ -20,6 +20,7 @@
                 <tr class="border-b border-slate-100">
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">HOD Name</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Email</th>
+                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Department</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Joined</th>
                     <th class="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Actions</th>
                 </tr>
@@ -36,6 +37,7 @@
                         </div>
                     </td>
                     <td class="py-3.5 text-sm text-slate-600">{{ $hod->email }}</td>
+                    <td class="py-3.5 text-sm text-slate-600">{{ $hod->department ?? 'N/A' }}</td>
                     <td class="py-3.5 text-xs text-slate-400">{{ $hod->created_at->format('M d, Y') }}</td>
                     <td class="py-3.5">
                         <div class="flex items-center justify-end gap-2">

@@ -28,12 +28,14 @@ class HodController extends Controller
         $data = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
+            'department' => 'required|string|max:255',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
         User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
+            'department' => $data['department'],
             'password' => Hash::make($data['password']),
             'role'     => 'hod',
         ]);
@@ -55,12 +57,14 @@ class HodController extends Controller
         $data = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => "required|email|unique:users,email,{$hod->id}",
+            'department' => 'required|string|max:255',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         $hod->update([
             'name'  => $data['name'],
             'email' => $data['email'],
+            'department' => $data['department'],
         ]);
 
         if (!empty($data['password'])) {

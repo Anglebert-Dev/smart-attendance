@@ -34,9 +34,10 @@ class DatabaseSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'hod@school.edu'],
             [
-                'name'     => 'Demo HOD',
-                'password' => Hash::make('hod123'),
-                'role'     => 'hod',
+                'name'       => 'Demo HOD',
+                'password'   => Hash::make('hod123'),
+                'role'       => 'hod',
+                'department' => 'Computer Science',
             ]
         );
 

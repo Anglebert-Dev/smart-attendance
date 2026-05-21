@@ -28,6 +28,13 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Department <span class="text-red-500">*</span></label>
+                    <input type="text" name="department" value="{{ old('department', $hod->department ?? '') }}" required
+                        class="input" placeholder="Computer Science">
+                    @error('department')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">
                         Password {{ isset($hod) ? '(leave blank to keep current)' : '' }}
                         @if(!isset($hod))<span class="text-red-500">*</span>@endif
