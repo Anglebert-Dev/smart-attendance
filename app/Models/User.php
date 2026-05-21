@@ -34,4 +34,23 @@ class User extends Authenticatable
     {
         return $this->role === 'hod';
     }
+
+    public function getMainDepartmentAttribute(): string
+    {
+        if (!$this->department) return 'Unknown';
+
+        $map = [
+            'electronics' => 'EEE',
+            'telecommunication' => 'EEE',
+            'electrical' => 'EEE',
+            'computer science' => 'IT',
+            'information management' => 'IT',
+            'software dev' => 'IT',
+            'accounting' => 'FINANCE',
+            'bussiness' => 'FINANCE',
+            'procurement' => 'FINANCE',
+        ];
+
+        return $map[$this->department] ?? 'Unknown';
+    }
 }
