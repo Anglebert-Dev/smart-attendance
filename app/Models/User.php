@@ -49,8 +49,11 @@ class User extends Authenticatable
             'accounting' => 'FINANCE',
             'bussiness' => 'FINANCE',
             'procurement' => 'FINANCE',
+            'EEE' => 'EEE',
+            'IT' => 'IT',
+            'FINANCE' => 'FINANCE',
         ];
 
-        return $map[$this->department] ?? 'Unknown';
+        return $map[$this->department] ?? strtoupper($this->department);
     }
 }
