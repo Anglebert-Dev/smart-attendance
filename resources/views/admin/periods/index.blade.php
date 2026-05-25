@@ -2,7 +2,7 @@
 
 @section('title', 'Class Periods')
 @section('page-title', 'Class Periods')
-@section('page-subtitle', 'School bell schedule — attendance is recorded per period')
+@section('page-subtitle', 'Define when each teaching period starts and ends')
 
 @section('header-actions')
     <a href="{{ route('admin.periods.create') }}" class="btn-primary">
@@ -14,13 +14,9 @@
 @section('content')
 <div class="card mb-5">
     <p class="text-sm text-slate-600">
-        When the camera marks a student, the system assigns the <strong>currently active period</strong> based on these times.
-        Students with no sighting in a period are marked absent automatically
-        <strong>2 minutes after each period ends</strong>, plus a final catch-all
-        @if($catchAllTime = \App\Models\Period::catchAllScheduleTime())
-            at <strong>{{ $catchAllTime }}</strong>
-        @endif
-        after the last period.
+        Set the times for each teaching period below. Attendance from the camera is saved against
+        whichever period is in session at that moment. If a student is not detected during a period,
+        they are marked absent once that period is over.
     </p>
 </div>
 
@@ -33,7 +29,6 @@
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Order</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Name</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Time</th>
-                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Absent job</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Status</th>
                     <th class="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Actions</th>
                 </tr>
@@ -44,9 +39,6 @@
                     <td class="py-3.5 text-sm text-slate-600">{{ $period->sort_order }}</td>
                     <td class="py-3.5 font-medium text-slate-900 text-sm">{{ $period->name }}</td>
                     <td class="py-3.5 text-sm text-slate-600">{{ $period->timeRangeLabel() }}</td>
-                    <td class="py-3.5 text-xs text-slate-500">
-                        Daily at {{ $period->absentMarkScheduleTime() }}
-                    </td>
                     <td class="py-3.5">
                         @if($period->is_active)
                             <span class="badge-green">Active</span>
