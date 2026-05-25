@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\Student;
+use App\Services\AttendancePeriodService;
 use Illuminate\Http\Request;
 
 class AttendanceApiController extends Controller
 {
+    public function __construct(private AttendancePeriodService $periods) {}
+
     /**
      * Called by Python face recognition module to mark attendance.
      * POST /api/v1/attendance
@@ -33,16 +36,12 @@ class AttendanceApiController extends Controller
         $markedAt  = now();
         $classId   = $student->class_id;
         $className = $student->schoolClass->name ?? 'N/A';
+        $period    = $this->periods->resolveActivePeriod($markedAt);
 
-        $alreadyMarked = AttendanceRecord::where('student_id', $student->id)
-            ->where('class_id', $classId)
-            ->whereDate('marked_at', $markedAt->toDateString())
-            ->exists();
-
-        if ($alreadyMarked) {
+        if (!$period) {
             return response()->json([
                 'already_marked' => true,
-                'message'        => "{$student->name} already marked present today.",
+                'message'        => 'No active class period right now — attendance not recorded.',
                 'student'        => $student->name,
                 'student_id'     => $student->student_id,
                 'class'          => $className,
@@ -50,9 +49,22 @@ class AttendanceApiController extends Controller
             ], 200);
         }
 
+        if ($this->periods->hasRecordFor($student->id, $classId, $period->id, $markedAt)) {
+            return response()->json([
+                'already_marked' => true,
+                'message'        => "{$student->name} already marked present for {$period->name}.",
+                'student'        => $student->name,
+                'student_id'     => $student->student_id,
+                'class'          => $className,
+                'period'         => $period->name,
+                'date'           => $markedAt->toDateString(),
+            ], 200);
+        }
+
         AttendanceRecord::create([
             'student_id' => $student->id,
             'class_id'   => $classId,
+            'period_id'  => $period->id,
             'status'     => 'present',
             'method'     => 'face_recognition',
             'marked_at'  => $markedAt,
@@ -65,6 +77,7 @@ class AttendanceApiController extends Controller
             'student'        => $student->name,
             'student_id'     => $student->student_id,
             'class'          => $className,
+            'period'         => $period->name,
             'time'           => $markedAt->format('H:i:s'),
             'date'           => $markedAt->toDateString(),
         ], 200);

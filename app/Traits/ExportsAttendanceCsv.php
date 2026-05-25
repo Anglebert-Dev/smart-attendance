@@ -23,7 +23,7 @@ trait ExportsAttendanceCsv
 
         $callback = function() use ($records) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['ID', 'Student Name', 'Student ID', 'Class', 'Status', 'Date', 'Time', 'Method']);
+            fputcsv($file, ['ID', 'Student Name', 'Student ID', 'Class', 'Period', 'Status', 'Date', 'Time', 'Method']);
 
             foreach ($records as $record) {
                 fputcsv($file, [
@@ -31,6 +31,7 @@ trait ExportsAttendanceCsv
                     $record->student->name,
                     $record->student->student_id,
                     $record->schoolClass->name,
+                    $record->periodLabel(),
                     ucfirst($record->status),
                     $record->marked_at->format('Y-m-d'),
                     $record->marked_at->format('H:i:s'),

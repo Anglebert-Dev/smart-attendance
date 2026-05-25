@@ -3,52 +3,67 @@
 namespace App\Console\Commands;
 
 use App\Models\AttendanceRecord;
+use App\Models\Period;
 use App\Models\Student;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class MarkAbsentStudents extends Command
 {
     protected $signature   = 'attendance:mark-absent {--date= : Date to mark absent for (Y-m-d), defaults to today}';
-    protected $description = 'Mark every student with no attendance record for the day as absent';
+    protected $description = 'Mark students absent for each ended period they have no record for';
 
     public function handle(): int
     {
         $date = $this->option('date')
-            ? now()->parse($this->option('date'))->toDateString()
-            : now()->toDateString();
+            ? Carbon::parse($this->option('date'))
+            : now();
 
-        $this->info("Marking absent for {$date}...");
-        \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: Marking absent for {$date}...");
+        $dateString = $date->toDateString();
+        $periods      = Period::endedForDate($date, now());
 
-        $recorded = AttendanceRecord::whereDate('marked_at', $date)
-            ->pluck('student_id')
-            ->all();
-
-        $unrecorded = Student::with('schoolClass')
-            ->whereNotIn('id', $recorded)
-            ->get();
-
-        if ($unrecorded->isEmpty()) {
-            $this->info('All students already have a record for today.');
-            \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: All students already have a record for today.");
+        if ($periods->isEmpty()) {
+            $this->info("No ended periods to process for {$dateString}.");
             return self::SUCCESS;
         }
 
-        $now    = now();
-        $rows   = $unrecorded->map(fn($s) => [
-            'student_id' => $s->id,
-            'class_id'   => $s->class_id,
-            'status'     => 'absent',
-            'method'     => 'auto',
-            'marked_at'  => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ])->all();
+        $this->info("Marking period absences for {$dateString}...");
+        $total = 0;
 
-        AttendanceRecord::insert($rows);
+        foreach ($periods as $period) {
+            $markedAt = $period->endDateTimeFor($date);
 
-        $this->info("Marked {$unrecorded->count()} student(s) absent.");
-        \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: Marked {$unrecorded->count()} student(s) absent.");
+            $students = Student::query()->get();
+
+            foreach ($students as $student) {
+                $exists = AttendanceRecord::query()
+                    ->where('student_id', $student->id)
+                    ->where('class_id', $student->class_id)
+                    ->where('period_id', $period->id)
+                    ->whereDate('marked_at', $dateString)
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                AttendanceRecord::create([
+                    'student_id' => $student->id,
+                    'class_id'   => $student->class_id,
+                    'period_id'  => $period->id,
+                    'status'     => 'absent',
+                    'method'     => 'auto',
+                    'marked_at'  => $markedAt,
+                ]);
+
+                $total++;
+            }
+
+            $this->line("  {$period->name}: absences filled.");
+        }
+
+        $this->info("Marked {$total} absent record(s) across ended periods.");
+        \Illuminate\Support\Facades\Log::info("MarkAbsentStudents: {$total} absent record(s) for {$dateString}.");
 
         return self::SUCCESS;
     }

@@ -21,6 +21,7 @@
             </select>
             <input type="date" name="date" value="{{ request('date', today()->format('Y-m-d')) }}"
                 class="input sm:w-auto">
+            @include('partials.period-filter')
             <div class="flex gap-2">
                 <button type="submit" class="btn-primary">Filter</button>
                 <a href="{{ route('admin.attendance.export', request()->all()) }}" class="btn-indigo flex items-center gap-2">
@@ -41,6 +42,7 @@
                 <tr class="border-b border-slate-100">
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Student</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Class</th>
+                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Period</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Status</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Time</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Date</th>
@@ -64,6 +66,9 @@
                     </td>
                     <td class="py-3.5">
                         <span class="badge-blue">{{ $record->schoolClass->name }}</span>
+                    </td>
+                    <td class="py-3.5">
+                        <span class="badge-slate">{{ $record->periodLabel() }}</span>
                     </td>
                     <td class="py-3.5">
                         @if($record->status === 'present')

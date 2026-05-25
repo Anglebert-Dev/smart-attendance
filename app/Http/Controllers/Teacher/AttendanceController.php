@@ -6,36 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\SchoolClass;
 use App\Traits\ExportsAttendanceCsv;
+use App\Traits\FiltersAttendanceRecords;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
 {
     use ExportsAttendanceCsv;
+    use FiltersAttendanceRecords;
 
     public function index(Request $request)
     {
         $classIds = SchoolClass::forTeacher(Auth::id())->pluck('id');
         $classes  = SchoolClass::forTeacher(Auth::id())->get();
+        $periods  = $this->periodsForFilter();
 
         if ($request->class_id && !$classIds->contains((int) $request->class_id)) {
             abort(403, 'You do not have access to this class.');
         }
 
-        $records = AttendanceRecord::with(['student', 'schoolClass'])
-            ->whereIn('class_id', $classIds)
-            ->when($request->search, fn ($q) =>
-                $q->whereHas('student', fn ($sq) =>
-                    $sq->where('name', 'like', "%{$request->search}%")
-                )
-            )
-            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
-            ->latest('marked_at')
+        $records = $this->filteredAttendanceQuery($request, $classIds->all())
             ->paginate(20)
             ->withQueryString();
 
-        return view('teacher.attendance', compact('records', 'classes'));
+        return view('teacher.attendance', compact('records', 'classes', 'periods'));
     }
 
     public function show(AttendanceRecord $record)
@@ -44,7 +38,7 @@ class AttendanceController extends Controller
             abort(403, 'You do not have access to this record.');
         }
 
-        $record->load(['student.schoolClass', 'schoolClass.teachers']);
+        $record->load(['student.schoolClass', 'schoolClass.teachers', 'period']);
         return view('teacher.attendance.show', compact('record'));
     }
 
@@ -56,17 +50,7 @@ class AttendanceController extends Controller
             abort(403, 'You do not have access to this class.');
         }
 
-        $records = AttendanceRecord::with(['student', 'schoolClass'])
-            ->whereIn('class_id', $classIds)
-            ->when($request->search, fn ($q) =>
-                $q->whereHas('student', fn ($sq) =>
-                    $sq->where('name', 'like', "%{$request->search}%")
-                )
-            )
-            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
-            ->latest('marked_at')
-            ->get();
+        $records = $this->filteredAttendanceQuery($request, $classIds->all())->get();
 
         return $this->downloadCsv($records);
     }

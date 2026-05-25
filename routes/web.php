@@ -58,6 +58,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/attendance/export', [AdminAttendance::class, 'exportCsv'])->name('attendance.export');
     Route::get('/attendance/{record}', [AdminAttendance::class, 'show'])->name('attendance.show');
 
+    // Periods (bell schedule)
+    Route::get('/periods',                [\App\Http\Controllers\Admin\PeriodController::class, 'index'])->name('periods.index');
+    Route::get('/periods/create',         [\App\Http\Controllers\Admin\PeriodController::class, 'create'])->name('periods.create');
+    Route::post('/periods',               [\App\Http\Controllers\Admin\PeriodController::class, 'store'])->name('periods.store');
+    Route::get('/periods/{period}/edit',  [\App\Http\Controllers\Admin\PeriodController::class, 'edit'])->name('periods.edit');
+    Route::put('/periods/{period}',       [\App\Http\Controllers\Admin\PeriodController::class, 'update'])->name('periods.update');
+    Route::delete('/periods/{period}',    [\App\Http\Controllers\Admin\PeriodController::class, 'destroy'])->name('periods.destroy');
+
     // API Keys
     Route::get('/api-keys',                    [ApiKeyController::class, 'index'])->name('api-keys.index');
     Route::post('/api-keys',                   [ApiKeyController::class, 'store'])->name('api-keys.store');

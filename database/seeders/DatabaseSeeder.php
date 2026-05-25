@@ -41,6 +41,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $this->call(PeriodSeeder::class);
+
         $this->command->info('✅ Default accounts created:');
         $this->command->info('   Admin   → admin@school.edu / admin123');
         $this->command->info('   Teacher → teacher@school.edu / teacher123');

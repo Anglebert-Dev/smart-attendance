@@ -60,6 +60,13 @@
 
                     <div class="space-y-6">
                         <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Period</label>
+                            <p class="text-slate-900 font-medium">{{ $record->periodLabel() }}</p>
+                            @if($record->period)
+                                <p class="text-slate-500 text-sm">{{ $record->period->timeRangeLabel() }}</p>
+                            @endif
+                        </div>
+                        <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Class</label>
                             <p class="text-slate-900 font-medium">{{ $record->schoolClass->name }}</p>
                         </div>

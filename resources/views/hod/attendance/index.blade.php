@@ -21,6 +21,7 @@
             </select>
             <input type="date" name="date" value="{{ request('date', today()->format('Y-m-d')) }}"
                 class="input sm:w-auto">
+            @include('partials.period-filter')
             <div class="flex gap-2">
                 <button type="submit" class="btn-primary">Filter</button>
                 <a href="{{ route('hod.attendance.export', request()->all()) }}" class="btn-indigo flex items-center gap-2">
@@ -41,6 +42,7 @@
                 <tr class="border-b border-slate-100">
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Student</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Class</th>
+                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Period</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Status</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Marked At</th>
                     <th class="text-right text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Actions</th>
@@ -61,14 +63,21 @@
                         </div>
                     </td>
                     <td class="py-3.5 text-sm text-slate-600">
-                        {{ $record->student->schoolClass->name ?? 'N/A' }}
+                        {{ $record->schoolClass->name ?? 'N/A' }}
                     </td>
                     <td class="py-3.5">
-                        <span class="badge-green">Present</span>
+                        <span class="badge-slate">{{ $record->periodLabel() }}</span>
                     </td>
                     <td class="py-3.5">
-                        <div class="text-sm text-slate-700">{{ $record->created_at->format('M d, Y') }}</div>
-                        <div class="text-xs text-slate-400">{{ $record->created_at->format('H:i:s') }}</div>
+                        @if($record->status === 'present')
+                            <span class="badge-green">Present</span>
+                        @else
+                            <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:500;background:#fee2e2;color:#dc2626;">Absent</span>
+                        @endif
+                    </td>
+                    <td class="py-3.5">
+                        <div class="text-sm text-slate-700">{{ $record->marked_at->format('M d, Y') }}</div>
+                        <div class="text-xs text-slate-400">{{ $record->marked_at->format('H:i:s') }}</div>
                     </td>
                     <td class="py-3.5 text-right">
                         <a href="{{ route('hod.attendance.show', $record) }}" class="btn-secondary py-1 text-xs">View</a>

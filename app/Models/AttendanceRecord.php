@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AttendanceRecord extends Model
 {
-    protected $fillable = ['student_id', 'class_id', 'status', 'method', 'marked_at'];
+    protected $fillable = ['student_id', 'class_id', 'period_id', 'status', 'method', 'marked_at'];
 
     protected $casts = ['marked_at' => 'datetime'];
 
@@ -18,6 +18,16 @@ class AttendanceRecord extends Model
     public function schoolClass()
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function period()
+    {
+        return $this->belongsTo(Period::class);
+    }
+
+    public function periodLabel(): string
+    {
+        return $this->period?->name ?? '—';
     }
 
     public function methodLabel(): string

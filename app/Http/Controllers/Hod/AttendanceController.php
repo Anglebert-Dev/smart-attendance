@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hod\Concerns\ScopesToDepartment;
 use App\Models\AttendanceRecord;
 use App\Traits\ExportsAttendanceCsv;
+use App\Traits\FiltersAttendanceRecords;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
     use ExportsAttendanceCsv;
+    use FiltersAttendanceRecords;
     use ScopesToDepartment;
 
     public function index(Request $request)
@@ -18,25 +20,17 @@ class AttendanceController extends Controller
         $department = $this->hodDepartmentCode();
         $classIds   = $this->departmentClassIds();
         $classes    = $this->departmentClassesQuery()->orderBy('name')->get();
+        $periods    = $this->periodsForFilter();
 
         if ($request->class_id && !in_array((int) $request->class_id, $classIds, true)) {
             abort(403, 'You do not have access to this class.');
         }
 
-        $records = AttendanceRecord::with(['student', 'schoolClass'])
-            ->whereIn('class_id', $classIds)
-            ->when($request->search, fn ($q) =>
-                $q->whereHas('student', fn ($sq) =>
-                    $sq->where('name', 'like', "%{$request->search}%")
-                )
-            )
-            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
-            ->latest('marked_at')
+        $records = $this->filteredAttendanceQuery($request, $classIds)
             ->paginate(20)
             ->withQueryString();
 
-        return view('hod.attendance.index', compact('records', 'classes', 'department'));
+        return view('hod.attendance.index', compact('records', 'classes', 'periods', 'department'));
     }
 
     public function show(AttendanceRecord $record)
@@ -44,7 +38,7 @@ class AttendanceController extends Controller
         $record->loadMissing('schoolClass');
         $this->ensureClassInDepartment($record->schoolClass);
 
-        $record->load(['student.schoolClass', 'schoolClass.teachers']);
+        $record->load(['student.schoolClass', 'schoolClass.teachers', 'period']);
 
         return view('hod.attendance.show', compact('record'));
     }
@@ -57,17 +51,7 @@ class AttendanceController extends Controller
             abort(403, 'You do not have access to this class.');
         }
 
-        $records = AttendanceRecord::with(['student', 'schoolClass'])
-            ->whereIn('class_id', $classIds)
-            ->when($request->search, fn ($q) =>
-                $q->whereHas('student', fn ($sq) =>
-                    $sq->where('name', 'like', "%{$request->search}%")
-                )
-            )
-            ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
-            ->when($request->date, fn ($q) => $q->whereDate('marked_at', $request->date))
-            ->latest('marked_at')
-            ->get();
+        $records = $this->filteredAttendanceQuery($request, $classIds)->get();
 
         return $this->downloadCsv($records);
     }
