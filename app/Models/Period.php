@@ -61,4 +61,30 @@ class Period extends Model
     {
         return Carbon::parse($date->toDateString() . ' ' . $this->end_time);
     }
+
+    /** Time of day (H:i) when the absent-mark job should run after this period ends. */
+    public function absentMarkScheduleTime(int $bufferMinutes = 2): string
+    {
+        return $this->parseTime($this->end_time)
+            ->addMinutes($bufferMinutes)
+            ->format('H:i');
+    }
+
+    public static function catchAllScheduleTime(int $bufferMinutes = 30): ?string
+    {
+        $lastEnd = static::query()->where('is_active', true)->max('end_time');
+
+        if (!$lastEnd) {
+            return null;
+        }
+
+        return static::parseTime($lastEnd)->addMinutes($bufferMinutes)->format('H:i');
+    }
+
+    private static function parseTime(string $time): Carbon
+    {
+        $normalized = strlen($time) === 5 ? $time . ':00' : $time;
+
+        return Carbon::createFromFormat('H:i:s', $normalized);
+    }
 }
