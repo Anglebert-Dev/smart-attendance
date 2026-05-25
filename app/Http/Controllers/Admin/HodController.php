@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -26,18 +27,18 @@ class HodController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'department' => 'required|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            'name'       => 'required|string|max:255',
+            'email'      => 'required|email|unique:users,email',
+            'department' => Department::validationRules(),
+            'password'   => 'required|string|min:8|confirmed',
         ]);
 
         User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'department' => $data['department'],
-            'password' => Hash::make($data['password']),
-            'role'     => 'hod',
+            'name'       => $data['name'],
+            'email'      => $data['email'],
+            'department' => Department::normalize($data['department']),
+            'password'   => Hash::make($data['password']),
+            'role'       => 'hod',
         ]);
 
         return redirect()->route('admin.hods.index')
@@ -55,16 +56,16 @@ class HodController extends Controller
         abort_if($hod->role !== 'hod', 403);
 
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => "required|email|unique:users,email,{$hod->id}",
-            'department' => 'required|string|max:255',
-            'password' => 'nullable|string|min:8|confirmed',
+            'name'       => 'required|string|max:255',
+            'email'      => "required|email|unique:users,email,{$hod->id}",
+            'department' => Department::validationRules(),
+            'password'   => 'nullable|string|min:8|confirmed',
         ]);
 
         $hod->update([
-            'name'  => $data['name'],
-            'email' => $data['email'],
-            'department' => $data['department'],
+            'name'       => $data['name'],
+            'email'      => $data['email'],
+            'department' => Department::normalize($data['department']),
         ]);
 
         if (!empty($data['password'])) {

@@ -3,6 +3,7 @@
 
 namespace App\Models;
 
+use App\Support\Department;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -37,23 +38,6 @@ class User extends Authenticatable
 
     public function getMainDepartmentAttribute(): string
     {
-        if (!$this->department) return 'Unknown';
-
-        $map = [
-            'electronics' => 'EEE',
-            'telecommunication' => 'EEE',
-            'electrical' => 'EEE',
-            'computer science' => 'IT',
-            'information management' => 'IT',
-            'software dev' => 'IT',
-            'accounting' => 'FINANCE',
-            'bussiness' => 'FINANCE',
-            'procurement' => 'FINANCE',
-            'EEE' => 'EEE',
-            'IT' => 'IT',
-            'FINANCE' => 'FINANCE',
-        ];
-
-        return $map[$this->department] ?? strtoupper($this->department);
+        return Department::normalize($this->department) ?? 'Unknown';
     }
 }

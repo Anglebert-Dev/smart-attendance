@@ -2,7 +2,7 @@
 
 @section('title', 'Attendance Logs')
 @section('page-title', 'Attendance Logs')
-@section('page-subtitle', 'Real-time departmental attendance tracking')
+@section('page-subtitle', ($department ?? 'Department') . ' — attendance tracking')
 
 @section('content')
 {{-- Filters --}}

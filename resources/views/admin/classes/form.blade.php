@@ -31,7 +31,12 @@
                 </div>
 
                 <div>
-                    <label for="teacher_ids" class="block text-sm font-medium text-slate-700 mb-1.5">Assign Teachers</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Department <span class="text-red-500">*</span></label>
+                    @include('partials.department-select', ['selected' => old('department', $class->department ?? '')])
+                    @error('department')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <p class="text-xs text-slate-500 mb-2">Search and select one or more teachers for this class.</p>
                     <select id="teacher_ids" name="teacher_ids[]" class="input w-full" multiple>
                         @php

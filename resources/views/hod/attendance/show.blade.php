@@ -62,6 +62,7 @@
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Class / Session</label>
                             <p class="text-slate-900 font-medium">{{ $record->schoolClass->name }}</p>
+                            <p class="text-slate-500 text-sm">Department: {{ $record->schoolClass->departmentLabel() }}</p>
                             <p class="text-slate-500 text-sm">Instructors: {{ $record->schoolClass->teachers->pluck('name')->join(', ') ?: 'N/A' }}</p>
                         </div>
                     </div>

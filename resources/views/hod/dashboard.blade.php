@@ -2,7 +2,7 @@
 
 @section('title', 'HOD Dashboard')
 @section('page-title', 'HOD Review Dashboard')
-@section('page-subtitle', 'Departmental Overview')
+@section('page-subtitle', ($stats['department'] ?? 'Department') . ' — departmental overview')
 
 @section('content')
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">

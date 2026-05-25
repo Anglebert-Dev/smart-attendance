@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Department;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class SchoolClass extends Model
 {
     protected $table    = 'school_classes';
-    protected $fillable = ['name', 'description'];
+    protected $fillable = ['name', 'description', 'department'];
 
     public function teachers()
     {
@@ -31,11 +32,27 @@ class SchoolClass extends Model
         return $query->whereHas('teachers', fn (Builder $q) => $q->where('users.id', $userId));
     }
 
+    public function scopeForDepartment(Builder $query, ?string $department): Builder
+    {
+        $code = Department::normalize($department);
+
+        if (!$code) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->where('department', $code);
+    }
+
     public function hasTeacher(User|int $user): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
 
         return $this->teachers()->whereKey($userId)->exists();
+    }
+
+    public function departmentLabel(): string
+    {
+        return Department::label($this->department);
     }
 
     // Append students count

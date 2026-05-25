@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SchoolClass;
 use App\Models\User;
+use App\Support\Department;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,7 @@ class ClassController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string|max:500',
+            'department'    => Department::validationRules(),
             'teacher_ids'   => 'nullable|array',
             'teacher_ids.*' => Rule::exists('users', 'id')->where('role', 'teacher'),
         ]);
@@ -38,6 +40,7 @@ class ClassController extends Controller
         $class = SchoolClass::create([
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
+            'department'  => Department::normalize($data['department']),
         ]);
 
         $class->teachers()->sync($data['teacher_ids'] ?? []);
@@ -58,6 +61,7 @@ class ClassController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string|max:500',
+            'department'    => Department::validationRules(),
             'teacher_ids'   => 'nullable|array',
             'teacher_ids.*' => Rule::exists('users', 'id')->where('role', 'teacher'),
         ]);
@@ -65,6 +69,7 @@ class ClassController extends Controller
         $class->update([
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
+            'department'  => Department::normalize($data['department']),
         ]);
 
         $class->teachers()->sync($data['teacher_ids'] ?? []);

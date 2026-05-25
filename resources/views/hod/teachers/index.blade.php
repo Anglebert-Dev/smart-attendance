@@ -2,7 +2,7 @@
 
 @section('title', 'Teachers')
 @section('page-title', 'Staff Review')
-@section('page-subtitle', 'List of all teachers in the department')
+@section('page-subtitle', ($department ?? 'Department') . ' — teachers in this department')
 
 @section('content')
 <div class="card">

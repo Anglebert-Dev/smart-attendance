@@ -106,6 +106,9 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-slate-800">{{ $class->name }}</p>
+                        @if($class->department)
+                            <span class="badge-blue text-[10px] mt-0.5">{{ $class->departmentLabel() }}</span>
+                        @endif
                         <div class="mt-0.5">
                             <x-teacher-avatars :teachers="$class->teachers" />
                         </div>

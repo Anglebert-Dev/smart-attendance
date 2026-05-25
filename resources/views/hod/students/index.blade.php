@@ -2,7 +2,7 @@
 
 @section('title', 'Students')
 @section('page-title', 'Student Directory')
-@section('page-subtitle', 'List of all students across departments')
+@section('page-subtitle', ($department ?? 'Department') . ' — student directory')
 
 @section('content')
 <div class="card">

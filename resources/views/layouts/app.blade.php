@@ -265,7 +265,10 @@
                 </a>
 
             @elseif(auth()->user()->role === 'hod')
-                <p style="color:#334155;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;padding:0 10px 10px;">HOD Review</p>
+                <p style="color:#334155;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;padding:0 10px 4px;">HOD Review</p>
+                @if(auth()->user()->main_department && auth()->user()->main_department !== 'Unknown')
+                    <p style="color:#64748b;font-size:11px;padding:0 10px 10px;">{{ auth()->user()->main_department }} Department</p>
+                @endif
 
                 <a href="{{ route('hod.dashboard') }}" class="sidebar-link {{ request()->routeIs('hod.dashboard') ? 'active' : '' }}">
                     <svg style="width:15px;height:15px;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">

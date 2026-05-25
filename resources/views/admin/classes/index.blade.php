@@ -19,6 +19,7 @@
             <thead>
                 <tr class="border-b border-slate-100">
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Class Name</th>
+                    <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Department</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Teachers</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Students</th>
                     <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3">Created</th>
@@ -40,6 +41,13 @@
                                 @endif
                             </div>
                         </div>
+                    </td>
+                    <td class="py-3.5">
+                        @if($class->department)
+                            <span class="badge-blue">{{ $class->departmentLabel() }}</span>
+                        @else
+                            <span class="text-xs text-slate-400 italic">Not set</span>
+                        @endif
                     </td>
                     <td class="py-3.5 max-w-[240px]">
                         <x-teacher-avatars :teachers="$class->teachers" />

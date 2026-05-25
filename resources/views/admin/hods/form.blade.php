@@ -29,12 +29,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Department <span class="text-red-500">*</span></label>
-                    <select name="department" required class="input" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
-                        <option value="" disabled {{ old('department', $hod->department ?? '') == '' ? 'selected' : '' }}>Select a department</option>
-                        <option value="EEE" {{ old('department', $hod->main_department ?? '') == 'EEE' ? 'selected' : '' }}>EEE</option>
-                        <option value="IT" {{ old('department', $hod->main_department ?? '') == 'IT' ? 'selected' : '' }}>IT</option>
-                        <option value="FINANCE" {{ old('department', $hod->main_department ?? '') == 'FINANCE' ? 'selected' : '' }}>FINANCE</option>
-                    </select>
+                    @include('partials.department-select', ['selected' => old('department', $hod->department ?? '')])
                     @error('department')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
 

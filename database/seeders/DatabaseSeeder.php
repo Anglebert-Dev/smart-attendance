@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
                 'name'       => 'Demo HOD',
                 'password'   => Hash::make('hod123'),
                 'role'       => 'hod',
-                'department' => 'Computer Science',
+                'department' => 'IT',
             ]
         );
 

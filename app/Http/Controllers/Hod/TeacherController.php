@@ -3,14 +3,25 @@
 namespace App\Http\Controllers\Hod;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Hod\Concerns\ScopesToDepartment;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
+    use ScopesToDepartment;
+
     public function index()
     {
-        $teachers = User::where('role', 'teacher')->withCount('classes')->get();
-        return view('hod.teachers.index', compact('teachers'));
+        $department = $this->hodDepartmentCode();
+        $classIds   = $this->departmentClassIds();
+
+        $teachers = User::where('role', 'teacher')
+            ->whereHas('classes', fn ($q) => $q->whereIn('school_classes.id', $classIds))
+            ->with(['classes' => fn ($q) => $q->whereIn('school_classes.id', $classIds)->orderBy('name')])
+            ->withCount(['classes' => fn ($q) => $q->whereIn('school_classes.id', $classIds)])
+            ->orderBy('name')
+            ->get();
+
+        return view('hod.teachers.index', compact('teachers', 'department'));
     }
 }

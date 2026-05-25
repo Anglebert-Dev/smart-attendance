@@ -16,6 +16,10 @@
                     <p class="text-sm font-medium text-slate-800">{{ $class->name }}</p>
                 </div>
                 <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Department</label>
+                    <span class="badge-blue">{{ $class->departmentLabel() }}</span>
+                </div>
+                <div>
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Assigned Teachers</label>
                     @if($class->teachers->count())
                         <div class="flex flex-wrap gap-3 mt-1">

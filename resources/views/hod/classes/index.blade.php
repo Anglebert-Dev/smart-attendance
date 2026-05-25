@@ -2,7 +2,7 @@
 
 @section('title', 'Classes')
 @section('page-title', 'Class Monitoring')
-@section('page-subtitle', 'Overview of all active classes')
+@section('page-subtitle', ($department ?? 'Department') . ' — overview of active classes')
 
 @section('content')
 <div class="card">
@@ -49,7 +49,8 @@
     @else
         <div class="text-center py-16 text-slate-400">
             <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-            <p class="font-medium text-slate-600 mb-1">No classes found</p>
+            <p class="font-medium text-slate-600 mb-1">No classes in this department</p>
+            <p class="text-sm">Assign classes to the {{ $department ?? 'department' }} department from the admin panel.</p>
         </div>
     @endif
 </div>
