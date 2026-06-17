@@ -79,6 +79,20 @@ class AttendanceApiController extends Controller
             ]);
         }
 
+        if (!$this->periods->isDetectionIntervalMet($student->id, $classId, $period->id, $detectedAt, $detectedAt)) {
+            $interval = AttendancePeriodService::DETECTION_INTERVAL_MINUTES;
+            return response()->json([
+                'already_marked' => false,
+                'too_soon'       => true,
+                'message'        => "{$student->name}: detection ignored — less than {$interval} min since last detection.",
+                'student'        => $student->name,
+                'student_id'     => $student->student_id,
+                'class'          => $className,
+                'period'         => $period->name,
+                'date'           => $detectedAt->toDateString(),
+            ]);
+        }
+
         $this->periods->logDetection($student->id, $classId, $period->id, $detectedAt);
 
         $count    = $this->periods->countDetections($student->id, $classId, $period->id, $detectedAt);
