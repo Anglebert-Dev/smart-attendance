@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Hod;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Hod\Concerns\ScopesToDepartment;
+use App\Models\AttendanceDetection;
 use App\Models\AttendanceRecord;
 use App\Traits\ExportsAttendanceCsv;
 use App\Traits\FiltersAttendanceRecords;
@@ -40,7 +41,15 @@ class AttendanceController extends Controller
 
         $record->load(['student.schoolClass', 'schoolClass.teachers', 'period']);
 
-        return view('hod.attendance.show', compact('record'));
+        $detections = AttendanceDetection::query()
+            ->where('student_id', $record->student_id)
+            ->where('class_id', $record->class_id)
+            ->where('period_id', $record->period_id)
+            ->whereDate('detected_at', $record->marked_at->toDateString())
+            ->orderBy('detected_at')
+            ->get();
+
+        return view('hod.attendance.show', compact('record', 'detections'));
     }
 
     public function exportCsv(Request $request)
