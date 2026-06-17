@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Services\AttendancePeriodService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceApiController extends Controller
 {
@@ -32,6 +33,9 @@ class AttendanceApiController extends Controller
             ->first();
 
         if (!$student) {
+            Log::channel('attendance')->warning('face_detection: unknown student_id', [
+                'student_id' => $data['student_id'],
+            ]);
             return response()->json([
                 'error'      => 'Student not found',
                 'student_id' => $data['student_id'],
@@ -43,7 +47,16 @@ class AttendanceApiController extends Controller
         $className  = $student->schoolClass->name ?? 'N/A';
         $period     = $this->periods->resolveActivePeriod($detectedAt);
 
+        $context = [
+            'student'    => $student->name,
+            'student_id' => $student->student_id,
+            'class'      => $className,
+            'time'       => $detectedAt->format('H:i:s'),
+            'date'       => $detectedAt->toDateString(),
+        ];
+
         if (!$period) {
+            Log::channel('attendance')->info('face_detection: no_active_period', $context);
             return response()->json([
                 'already_marked' => true,
                 'message'        => 'No active class period right now — attendance not recorded.',
@@ -54,7 +67,10 @@ class AttendanceApiController extends Controller
             ]);
         }
 
+        $context['period'] = $period->name;
+
         if ($this->periods->hasRecordFor($student->id, $classId, $period->id, $detectedAt)) {
+            Log::channel('attendance')->info('face_detection: already_present', $context);
             return response()->json([
                 'already_marked' => true,
                 'message'        => "{$student->name} already marked present for {$period->name}.",
@@ -67,6 +83,7 @@ class AttendanceApiController extends Controller
         }
 
         if (!$this->periods->isWithinDetectionWindow($period, $detectedAt)) {
+            Log::channel('attendance')->info('face_detection: window_closed', $context);
             return response()->json([
                 'already_marked' => false,
                 'window_closed'  => true,
@@ -81,6 +98,9 @@ class AttendanceApiController extends Controller
 
         if (!$this->periods->isDetectionIntervalMet($student->id, $classId, $period->id, $detectedAt, $detectedAt)) {
             $interval = AttendancePeriodService::DETECTION_INTERVAL_MINUTES;
+            Log::channel('attendance')->info('face_detection: too_soon', array_merge($context, [
+                'interval_minutes' => $interval,
+            ]));
             return response()->json([
                 'already_marked' => false,
                 'too_soon'       => true,
@@ -108,6 +128,11 @@ class AttendanceApiController extends Controller
                 'marked_at'  => $detectedAt,
             ]);
 
+            Log::channel('attendance')->info('face_detection: marked_present', array_merge($context, [
+                'detections' => $count,
+                'required'   => $required,
+            ]));
+
             return response()->json([
                 'already_marked' => false,
                 'success'        => true,
@@ -121,6 +146,11 @@ class AttendanceApiController extends Controller
                 'date'           => $detectedAt->toDateString(),
             ]);
         }
+
+        Log::channel('attendance')->info('face_detection: pending', array_merge($context, [
+            'detections' => $count,
+            'required'   => $required,
+        ]));
 
         return response()->json([
             'already_marked' => false,
